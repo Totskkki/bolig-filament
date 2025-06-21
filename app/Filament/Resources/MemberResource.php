@@ -181,7 +181,7 @@ class MemberResource extends Resource
                             ]),
 
                         FileUpload::make('image_photo')
-                             ->avatar()
+                            ->avatar()
                             ->label('Upload Photo')
                             ->disk('public')
                             ->directory('images')
@@ -375,24 +375,20 @@ class MemberResource extends Resource
                     ->size(50),
 
 
-
-
-
-
-
                 TextColumn::make('membership_date')
                     ->searchable()
                     ->date()
                     ->label('Member Since'),
 
-                TextColumn::make('membership_status')
-                    ->badge()
-                    ->label('Status')
-                    ->colors([
-                        'success' => 'active',
-                        'danger' => 'inactive',
-                        'secondary' => 'deceased',
-                    ]),
+                // TextColumn::make('membership_status')
+                //     ->badge()
+                //     ->label('Status')
+                //     ->colors([
+                //         'success' => 'active',
+                //         'danger' => 'inactive',
+                //         'secondary' => 'deceased',
+                //     ]),
+
                 TextColumn::make('membership_status')
                     ->label('Status')
                     ->badge()

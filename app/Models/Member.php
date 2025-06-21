@@ -27,16 +27,16 @@ class Member extends Model
 
     public function name()
     {
-        return $this->belongsTo(Name::class,'id' );
+        return $this->belongsTo(Name::class, 'names_id', 'id');
     }
 
     public function address()
     {
-        return $this->belongsTo(Address::class, 'id');
+        return $this->belongsTo(Address::class, 'address_id', 'id');
     }
     public function contributions()
     {
-        return $this->hasMany(Contribution::class, 'id');
+        return $this->hasMany(Contribution::class, 'payer_memberID', 'id');
     }
 
     public function isDeceased()
@@ -46,14 +46,14 @@ class Member extends Model
 
     public function deceased()
     {
-        return $this->hasMany(Deceased::class, 'id');
+        return $this->hasMany(Deceased::class, 'memberID', 'id');
     }
 
 
     public function latestContribution()
-{
-    return $this->hasOne(Contribution::class, 'id')->latest('payment_date');
-}
+    {
+        return $this->hasOne(Contribution::class, 'payer_memberID', 'id')->latest('payment_date');
+    }
 
 
 
@@ -71,7 +71,7 @@ class Member extends Model
 
     public function unpaidContributions()
     {
-        return $this->hasMany(Contribution::class,'payer_memberID', 'id')->where('status', '!=', 1);
+        return $this->hasMany(Contribution::class, 'payer_memberID', 'id')->where('status', '!=', 1);
     }
 
     public function getTotalUnpaidAmountAttribute()
@@ -91,16 +91,11 @@ class Member extends Model
 
 
     public function getLastPaymentDateAttribute()
-{
-    return $this->contributions()
-        ->latest('payment_date')
-        ->value('payment_date');
-}
-
-
-
-
-
+    {
+        return $this->contributions()
+            ->latest('payment_date')
+            ->value('payment_date');
+    }
 
     protected static function booted()
     {

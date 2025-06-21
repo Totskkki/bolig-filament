@@ -42,21 +42,34 @@ class Contribution extends Model
         return $name ? "{$name->last_name}, {$name->first_name} {$name->middle_name}" : null;
     }
 
-    // ✅ Useful computed helpers
+    public function unpaidContributions()
+    {
+        return $this->hasMany(Contribution::class, 'payer_memberID', 'id')->where('status', '!=', 1);
+    }
+
+
+    public function getGroupedDeceasedNamesAttribute()
+    {
+        return $this->unpaidContributions()
+            ->whereHas('deceased', fn($q) => $q->whereNotNull('id'))
+            ->with('deceased.member.name')
+            ->get()
+            ->map(fn($c) => optional($c->deceased->member->name)?->full_name)
+            ->filter()
+            ->implode('<br>');
+    }
     public function getHasPaidAttribute()
     {
-        return (bool) $this->status;
+        return $this->status == 1;
     }
 
     public function getStatusTextAttribute(): string
     {
-        return $this->hasPaid ? 'Paid' : 'Unpaid';
+        return $this->status == 1 ? 'Paid' : 'Unpaid';
     }
-
 
     public static function scopeGroupByPayer(Builder $query): Builder
     {
         return $query->where('status', false);
     }
-
 }

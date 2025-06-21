@@ -34,8 +34,9 @@ class ContributionResource extends Resource
 {
     protected static ?string $model = Contribution::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
     protected static ?int $navigationSort = 4;
+
 
     // public static function getTableQuery(): Builder
     // {
@@ -53,61 +54,86 @@ class ContributionResource extends Resource
     {
         return $table
             ->striped()
-            //->defaultSort('consid', 'desc')
+            ->defaultSort('id', 'payment_date')
+            // ->modifyQueryUsing(function ($query) {
+            //     $filters = request()->input('tableFilters', []);
+            //     $year = $filters['year'] ?? null;
+            //     $month = $filters['month'] ?? null;
+            //     $status = $filters['status'] ?? 0;
+
+
+            //     $query = Member::query()
+            //         ->with([
+            //             'name',
+            //             'contributions.deceased.member.name',
+            //         ])
+            //         ->addSelect([
+            //             'payment_date' => \App\Models\Contribution::select('payment_date')
+            //                 ->whereColumn('payer_memberID', 'members.id')
+            //                 ->where('status', 1)
+            //                 ->latest('payment_date')
+            //                 ->limit(1),
+            //         ]);
+
+
+            //     $query->whereHas('contributions', function ($q) use ($status, $month, $year) {
+            //         if (!is_null($status) && $status !== '') {
+            //             $q->where('status', (int) $status);
+            //         }
+
+            //         if (!empty($month)) {
+            //             // If it's an array, get the first non-empty value
+            //             if (is_array($month)) {
+            //                 $month = array_filter($month); // remove empty strings/nulls
+            //                 $month = reset($month); // get first valid value
+            //             }
+
+            //             // Proceed only if month is still not empty
+            //             if (!empty($month)) {
+            //                 $q->where('month', str_pad((string) $month, 2, '0', STR_PAD_LEFT));
+            //             }
+            //         }
+
+
+
+            //         if (!empty($year)) {
+            //             $q->where('year', $year);
+            //         }
+            //     });
+
+            //     return $query;
+            // })
             ->modifyQueryUsing(function ($query) {
                 $filters = request()->input('tableFilters', []);
                 $year = $filters['year'] ?? null;
                 $month = $filters['month'] ?? null;
                 $status = $filters['status'] ?? null;
 
-                $query = Member::query()
-                    ->with([
-                        'name',
-                        'contributions.deceased.member.name',
-                    ])
-                    ->addSelect([
-                        'payment_date' => \App\Models\Contribution::select('payment_date')
-                            ->whereColumn('payer_memberID', 'members.id') // ✅ correct join
-                            ->where('status', 1)
-                            ->latest('payment_date')
-                            ->limit(1),
-                    ]);
+                $query->with(['payer.name', 'deceased.member.name']);
 
-                // ✅ Always filter through contributions
-                $query->whereHas('contributions', function ($q) use ($status, $month, $year) {
-                    if (!is_null($status) && $status !== '') {
-                        $q->where('status', (int) $status);
-                    }
+                if (!is_null($status) && $status !== '') {
+                    $query->where('status', (int)$status);
+                }
 
-                    if (!empty($month)) {
-                        $month = is_array($month) ? $month[0] : $month; // 🛡️ Safe guard
-                        $q->where('month', str_pad((string)$month, 2, '0', STR_PAD_LEFT));
-                    }
+                if (!empty($month)) {
+                    $month = is_array($month) ? reset(array_filter($month)) : $month;
+                    $query->where('month', str_pad((string)$month, 2, '0', STR_PAD_LEFT));
+                }
 
-                    if (!empty($year)) {
-                        $q->where('year', $year);
-                    }
-                });
+                if (!empty($year)) {
+                    $query->where('year', $year);
+                }
 
                 return $query;
             })
 
-
-
-
             ->columns([
-                // TextColumn::make('memberID')
-                // ->label('#'),
-                TextColumn::make('name')
+                TextColumn::make('name') // comes from getNameAttribute()
                     ->label('Payer')
-                    ->getStateUsing(fn($record) => optional($record->name)?->last_name . ', ' . optional($record->name)?->first_name . ' ' . optional($record->name)?->middle_name)
-                    ->searchable(query: function ($query, string $search) {
-                        $query->whereHas('name', function ($q) use ($search) {
-                            $q->where('first_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%")
-                                ->orWhere('middle_name', 'like', "%{$search}%");
-                        });
-                    }),
+                    ->searchable(),
+
+                TextColumn::make('payer.name.last_name') // optional if you want deeper search
+                    ->visible(false),
 
                 BadgeColumn::make('grouped_deceased_names')
                     ->label('Deceased')
@@ -117,47 +143,37 @@ class ContributionResource extends Resource
                     ->html()
                     ->wrap()
                     ->extraAttributes([
-                        'style' => 'max-width: 150px; white-space: normal; word-break: break-word;',
+                        'style' => 'max-width: 200px; white-space: normal; word-break: break-word;',
                     ]),
 
-                TextColumn::make('total_unpaid_amount')
-                    ->label('Unpaid Amount')
 
-                    ->money('PHP', true),
                 TextColumn::make('payment_date')
-                    ->label('Last Payment Date')
+                    ->label('Payment Date')
                     ->date()
                     ->sortable()
                     ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('F j, Y') : '—'),
 
-                TextColumn::make('latest_unpaid_status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->colors([
-                        'success' => static fn($state): bool => $state === 1,
-                        'danger' => static fn($state): bool => $state === 0,
+                        'success' => fn($state) => $state == 1,
+                        'danger' => fn($state) => $state == 0,
                     ])
-                    ->formatStateUsing(fn($state): string => match ($state) {
-                        0 => 'Unpaid',
-                        1 => 'Paid',
-                        default => 'Unknown',
-                    }),
+                    ->formatStateUsing(fn($state) => $state ? 'Paid' : 'Unpaid'),
 
-                TextColumn::make('contributions.remarks')
+                TextColumn::make('amount')
+                    ->label('Amount')
+                    ->money('PHP', true),
+
+                TextColumn::make('remarks')
                     ->label('Remarks')
                     ->wrap()
                     ->limit(50)
-                    ->searchable(query: function ($query, string $search) {
-                        $query->whereHas('contributions', function ($q) use ($search) {
-                            $q->where('remarks', 'like', "%{$search}%");
-                        });
-                    }),
-
-
-
+                    ->searchable(),
             ])
-            ->filters([
 
+            ->filters([
                 SelectFilter::make('month')
                     ->label('Month')
                     ->options([
@@ -174,8 +190,7 @@ class ContributionResource extends Resource
                         11 => 'November',
                         12 => 'December',
                     ])
-                    ->placeholder('Show All')
-                    ->query(fn($query) => $query),
+                    ->placeholder('Show All'),
 
                 SelectFilter::make('year')
                     ->label('Year')
@@ -183,88 +198,188 @@ class ContributionResource extends Resource
                         ->mapWithKeys(fn($year) => [$year => $year])
                         ->toArray())
                     ->default(now()->year)
-                    ->placeholder('Show All')
-                    ->query(fn($query) => $query),
+                    ->placeholder('Show All'),
 
                 SelectFilter::make('status')
                     ->label('Status')
-                    ->default(0)
                     ->options([
                         1 => 'Paid',
                         0 => 'Unpaid',
                     ])
-
-
-                    ->placeholder('Show All')
-                    ->query(fn($query) => $query),
+                    ->placeholder('Show All'),
             ], layout: FiltersLayout::AboveContent)
 
-            ->headerActions([
-                Action::make('summary')
-                    ->label(fn() => 'Paid: ' . \App\Models\Contribution::where('status', 1)->count()
-                        . ' | Unpaid: ' . \App\Models\Contribution::where('status', 0)->count())
-                    ->disabled()
-                    ->color('gray')
-                    ->extraAttributes(['style' => 'cursor: default']),
 
-                ExportAction::make('export')
-                    ->label('Export Records')
-                    ->color('primary'),
-            ])
+
+            // ->columns([
+            //     TextColumn::make('name')
+            //         ->label('Payer')
+            //         ->getStateUsing(fn($record) => optional($record->name)?->last_name . ', ' . optional($record->name)?->first_name . ' ' . optional($record->name)?->middle_name)
+            //         ->searchable(query: function ($query, string $search) {
+            //             $query->whereHas('name', function ($q) use ($search) {
+            //                 $q->where('first_name', 'like', "%{$search}%")
+            //                     ->orWhere('last_name', 'like', "%{$search}%")
+            //                     ->orWhere('middle_name', 'like', "%{$search}%");
+            //             });
+            //         }),
+
+            //     BadgeColumn::make('grouped_deceased_names')
+            //         ->label('Deceased')
+            //         ->colors([
+            //             'success' => fn($state): bool => filled($state),
+            //         ])
+            //         ->html()
+            //         ->wrap()
+            //         ->extraAttributes([
+            //             'style' => 'max-width: 200px; white-space: normal; word-break: break-word;',
+            //         ]),
+
+            //     TextColumn::make('total_unpaid_amount')
+            //         ->label('Unpaid Amount')
+
+            //         ->money('PHP', true),
+            //     TextColumn::make('payment_date')
+            //         ->label('Last Payment Date')
+            //         ->date()
+            //         ->sortable()
+            //         ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('F j, Y') : '—'),
+
+            //     TextColumn::make('latest_unpaid_status')
+            //         ->label('Status')
+            //         ->badge()
+            //         ->colors([
+            //             'success' => static fn($state): bool => $state === 1,
+            //             'danger' => static fn($state): bool => $state === 0,
+            //         ])
+            //         ->formatStateUsing(fn($state): string => match ($state) {
+            //             0 => 'unpaid',
+            //             1 => 'paid',
+            //             default => 'Unknown',
+            //         }),
+
+            //     TextColumn::make('contributions.remarks')
+            //         ->label('Remarks')
+            //         ->wrap()
+            //         ->limit(50)
+            //         ->searchable(query: function ($query, string $search) {
+            //             $query->whereHas('contributions', function ($q) use ($search) {
+            //                 $q->where('remarks', 'like', "%{$search}%");
+            //             });
+            //         }),
+
+
+
+            // ])
+            // ->filters([
+
+            //     SelectFilter::make('month')
+            //         ->label('Month')
+            //         ->options([
+            //             1 => 'January',
+            //             2 => 'February',
+            //             3 => 'March',
+            //             4 => 'April',
+            //             5 => 'May',
+            //             6 => 'June',
+            //             7 => 'July',
+            //             8 => 'August',
+            //             9 => 'September',
+            //             10 => 'October',
+            //             11 => 'November',
+            //             12 => 'December',
+            //         ])
+            //         ->placeholder('Show All')
+            //         ->query(fn($query) => $query),
+
+            //     SelectFilter::make('year')
+            //         ->label('Year')
+            //         ->options(collect(range(2023, now()->year + 1))
+            //             ->mapWithKeys(fn($year) => [$year => $year])
+            //             ->toArray())
+            //         ->default(now()->year)
+            //         ->placeholder('Show All')
+            //         ->query(fn($query) => $query),
+
+            //     SelectFilter::make('status')
+            //         ->label('Status')
+            //         ->default(0)
+            //         ->options([
+            //             1 => 'Paid',
+            //             0 => 'Unpaid',
+            //         ])
+
+
+            //         ->placeholder('Show All')
+            //         ->query(fn($query) => $query),
+            // ], layout: FiltersLayout::AboveContent)
+
+            // ->headerActions([
+            //     Action::make('summary')
+            //         ->label(fn() => 'Paid: ' . \App\Models\Contribution::where('status', 1)->count()
+            //             . ' | Unpaid: ' . \App\Models\Contribution::where('status', 0)->count())
+            //         ->disabled()
+            //         ->color('gray')
+            //         ->extraAttributes(['style' => 'cursor: default']),
+
+            //     ExportAction::make('export')
+            //         ->label('Export Records')
+            //         ->color('primary'),
+            // ])
 
             ->actions([
-                Tables\Actions\Action::make('payContribution')
-                    ->label('Pay Contribution')
-                    ->icon('heroicon-o-banknotes')
-                    ->color('success')
-                    ->action(function ($record) {
-                        foreach ($record->unpaidContributions as $contribution) {
-                            $contribution->update([
-                                'status' => 1,
-                                'payment_date' => now(),
-                            ]);
-                        }
+                // Tables\Actions\Action::make('payContribution')
+                //     ->label('Pay Contribution')
+                //     ->icon('heroicon-o-banknotes')
+                //     ->color('success')
+                //     ->action(function ($record) {
+                //         foreach ($record->unpaidContributions as $contribution) {
+                //             $contribution->update([
+                //                 'status' => 1,
+                //                 'payment_date' => now(),
+                //             ]);
+                //         }
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('Payment Successful')
-                            ->body('All unpaid contributions have been marked as paid.')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation()
-                    ->visible(fn($record) => $record->unpaidContributions->isNotEmpty()),
+                //         \Filament\Notifications\Notification::make()
+                //             ->title('Payment Successful')
+                //             ->body('All unpaid contributions have been marked as paid.')
+                //             ->success()
+                //             ->send();
+                //     })
+                //     ->requiresConfirmation()
+                //     ->visible(fn($record) => $record->unpaidContributions->isNotEmpty()),
 
-                Tables\Actions\EditAction::make(),
+                // Tables\Actions\EditAction::make(),
             ])
 
 
 
             ->bulkActions([
-                Tables\Actions\BulkAction::make('markAsPaid')
-                    ->label('Mark as Paid')
-                    ->action(function ($records) {
-                        foreach ($records as $member) {
-                            foreach ($member->unpaidContributions as $contribution) {
-                                $contribution->update([
-                                    'payment_date' => now(),
-                                    'status' => 1,
-                                ]);
-                            }
-                        }
+                // Tables\Actions\BulkAction::make('markAsPaid')
+                //     ->label('Mark as Paid')
+                //     ->action(function ($records) {
+                //         foreach ($records as $member) {
+                //             foreach ($member->unpaidContributions as $contribution) {
+                //                 $contribution->update([
+                //                     'payment_date' => now(),
+                //                     'status' => 1,
+                //                 ]);
+                //             }
+                //         }
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('Bulk Payment Processed')
-                            ->body('All selected members\' unpaid contributions are now marked as paid.')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation()
-                    ->color('success')
-                    ->icon('heroicon-o-currency-dollar'),
+                //         \Filament\Notifications\Notification::make()
+                //             ->title('Bulk Payment Processed')
+                //             ->body('All selected members\' unpaid contributions are now marked as paid.')
+                //             ->success()
+                //             ->send();
+                //     })
+                //     ->requiresConfirmation()
+                //     ->color('success')
+                //     ->icon('heroicon-o-currency-dollar'),
             ])
 
         ;
     }
+
 
 
     public static function getRelations(): array
