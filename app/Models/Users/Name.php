@@ -39,6 +39,6 @@ class Name extends Model
     // In your Name model
     public function getFullNameAttribute()
     {
-        return "{$this->last_name}, {$this->first_name} {$this->middle_name} {$this->Suffix}";
+        return "{$this->last_name}, {$this->first_name} {$this->middle_name}";
     }
 }

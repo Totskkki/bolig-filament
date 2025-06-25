@@ -68,7 +68,7 @@ class CreateMember extends CreateRecord
             'membership_date'   => $data['membership_date'],
             'membership_status' => $data['membership_status'],
             'phone' => $data['phone'],
-            'photo' => $data['photo'],
+            'image_photo' => $data['image_photo'],
         ];
     }
 }

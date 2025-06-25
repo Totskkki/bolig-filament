@@ -6,17 +6,27 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Support\Facades\DB;
+
 class Address extends Model
 {
     use HasFactory;
 
     protected $table = 'addresses';
     protected $primaryKey = 'addressid';
+    // protected static $countryList;
+    // protected static $provinceList;
+    // protected static $cityList;
+
+    // protected static $countryMap = null;
+    // protected static $provinceMap = null;
+    // protected static $cityMap = null;
 
     protected $fillable = [
         'street',
         'city',
         'province',
+        'country',
         'postal_code',
         'country',
 
@@ -27,43 +37,23 @@ class Address extends Model
         return $this->hasMany(User::class, 'address_id', 'addressid');
     }
 
-    // public function user()
-    // {
-    //     return $this->belongsTo(User::class, 'userID'); // only if addresses.userID exists
-    // }
-
-
-    public function getCountryNameAttribute()
+    public function getCityNameAttribute(): string
     {
-        $countries = collect(json_decode(file_get_contents(storage_path('app/locations/countries.json')), true));
-        $country = $countries->firstWhere('id', $this->country);
-        return $country['name'] ?? 'Unknown';
+        return DB::table('cities')->where('id', $this->city)->value('name') ?? 'Unknown City';
     }
 
-    public function getProvinceNameAttribute()
+    public function getProvinceNameAttribute(): string
     {
-        $states = collect(json_decode(file_get_contents(storage_path('app/locations/states.json')), true));
-        $state = $states->firstWhere('id', $this->province);
-        return $state['name'] ?? 'Unknown';
+        return DB::table('provinces')->where('id', $this->province)->value('name') ?? 'Unknown Province';
     }
 
-    public function getCityNameAttribute()
+    public function getCountryNameAttribute(): string
     {
-        $cities = collect(json_decode(file_get_contents(storage_path('app/locations/cities.json')), true));
-        $city = $cities->firstWhere('id', $this->city);
-        return $city['name'] ?? 'Unknown';
+        return DB::table('countries')->where('id', $this->country)->value('name') ?? 'Unknown Country';
     }
-    public function getFullAddressAttribute()
+
+    public function getFullAddressAttribute(): string
     {
-        $countries = collect(json_decode(file_get_contents(storage_path('app/locations/countries.json')), true));
-        $states = collect(json_decode(file_get_contents(storage_path('app/locations/states.json')), true));
-        $cities = collect(json_decode(file_get_contents(storage_path('app/locations/cities.json')), true));
-
-        $countryName = optional($countries->firstWhere('id', $this->country))['name'] ?? 'Unknown';
-        $provinceName = optional($states->firstWhere('id', $this->province))['name'] ?? 'Unknown';
-        $cityName = optional($cities->firstWhere('id', $this->city))['name'] ?? 'Unknown';
-
-        return "{$countryName}, {$provinceName}, {$cityName}";
+        return "{$this->street}, {$this->city_name}, {$this->province_name}, {$this->country_name}";
     }
-    
 }

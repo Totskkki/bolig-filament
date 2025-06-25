@@ -19,19 +19,19 @@ class StatsOverview extends BaseWidget
                 ->chart([10, 12, 15, 18, 19, 20, 21]) // Mock data or calculate dynamically
                 ->color('primary'),
 
-            Card::make('Active Members', Member::where('membership_status', 'active')->count())
+            Card::make('Active Members', Member::where('membership_status', '0')->count())
                 ->description('Currently active')
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->chart([5, 7, 8, 10, 12, 13, 15]) // Sample trend
                 ->color('success'),
 
-            Card::make('Inactive Members', Member::where('membership_status', 'inactive')->count())
+            Card::make('Inactive Members', Member::where('membership_status', '1')->count())
                 ->description('No longer active')
                 ->descriptionIcon('heroicon-m-pause-circle')
                 ->chart([4, 3, 2, 3, 4, 3, 2])
                 ->color('warning'),
 
-            Card::make('Deceased Members', Member::where('membership_status', 'deceased')->count())
+            Card::make('Deceased Members', Member::where('membership_status', '2')->count())
                 ->description('Marked as deceased')
                 ->descriptionIcon('heroicon-m-x-circle')
                 ->chart([1, 1, 1, 2, 2, 3, 3])

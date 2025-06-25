@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\MemberResource\RelationManagers\ContributionsRelationManager;
+
 use App\Filament\Resources\MemberResource\Pages;
 use App\Models\Member;
 use Filament\Forms\Components\DatePicker;
@@ -14,7 +16,10 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\View;
+use Illuminate\Database\Eloquent\Builder;
+
 use Filament\Forms\Form;
+use App\Models\Users\Name;
 use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use App\Rules\UniqueFullName;
@@ -33,6 +38,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rule;
+
 
 
 
@@ -58,9 +64,6 @@ class MemberResource extends Resource
     }
 
 
-
-
-
     public static function form(Form $form): Form
     {
 
@@ -70,46 +73,77 @@ class MemberResource extends Resource
                 Section::make('Personal Information')
                     ->description('Enter the member’s name and contact details')
                     ->icon('heroicon-o-user')
-                    ->columns(2) // Increased to 3 columns for better control
+                    ->columns(2)
+                    ->collapsible()
                     ->schema([
+
                         TextInput::make('first_name')
                             ->label('First Name')
                             ->required()
                             ->maxLength(255)
                             ->regex('/^[a-zA-Z\s\-]+$/')
+                            ->afterStateUpdated(
+                                fn(\Filament\Forms\Set $set, $state) =>
+                                $set('first_name', ucwords(strtolower($state)))
+                            )
+                            ->dehydrateStateUsing(fn($state) => ucwords(strtolower($state)))
                             ->validationMessages([
                                 'required' => 'First name is required.',
                                 'regex' => 'Only letters, spaces, and hyphens allowed.',
                             ])
                             ->columnSpan(1),
 
-
                         TextInput::make('middle_name')
                             ->label('Middle Name')
                             ->maxLength(255)
-                            ->extraAttributes(['class' => 'w-20']),
+                            ->extraAttributes(['class' => 'w-20'])
+                            ->afterStateUpdated(
+                                fn(\Filament\Forms\Set $set, $state) =>
+                                $set('middle_name', ucwords(strtolower($state)))
+                            )
+                            ->dehydrateStateUsing(fn($state) => ucwords(strtolower($state))),
+
                         TextInput::make('last_name')
+                            ->label('Last Name')
                             ->required()
                             ->maxLength(255)
+                            ->regex('/^[a-zA-Z\s\-]+$/')
+                            ->afterStateUpdated(
+                                fn(\Filament\Forms\Set $set, $state) =>
+                                $set('last_name', ucwords(strtolower($state)))
+                            )
+                            ->dehydrateStateUsing(fn($state) => ucwords(strtolower($state)))
+                            ->reactive()
                             ->rule(function (Get $get, \Filament\Forms\Components\Component $component) {
+                                $firstName = $get('first_name');
+                                $middleName = $get('middle_name');
                                 $record = $component->getContainer()->getRecord();
+
                                 return new UniqueFullName(
-                                    $get('first_name'),
-                                    $get('middle_name'), // <-- Pass middle name
-                                    $record?->membersid
+                                    $firstName,
+                                    $middleName,
+                                    $record?->name?->namesid
                                 );
                             })
                             ->validationMessages([
                                 'required' => 'Last name is required.',
-                                'max' => 'Last name cannot exceed 255 characters.',
-                            ]),
+                                'regex' => 'Only letters, spaces, and hyphens allowed.',
+                            ])
+                            ->columnSpan(1),
+
 
                         TextInput::make('suffix')
                             ->label('Suffix')
                             ->placeholder('Jr. / Sr.')
                             ->maxLength(10)
                             ->extraAttributes(['class' => 'w-20'])
-                            ->columnSpan(1),
+                            ->columnSpan(1)
+                            ->afterStateUpdated(function (\Filament\Forms\Set $set, $state) {
+                                $set('suffix', ucwords(strtolower($state)));
+                            })
+                            ->dehydrateStateUsing(fn($state) => ucwords(strtolower($state))),
+
+
 
                         TextInput::make('phone')
                             ->label('Contact Number')
@@ -156,7 +190,7 @@ class MemberResource extends Resource
                                     ->readonly(),
                             ]),
 
-                        FileUpload::make('photo')
+                        FileUpload::make('image_photo')
                             ->avatar()
                             ->label('Upload Photo')
                             ->disk('public')
@@ -173,6 +207,7 @@ class MemberResource extends Resource
                     ->description('Enter the member’s current address')
                     ->icon('heroicon-o-map')
                     ->columns(2)
+                    ->collapsible()
                     ->schema([
                         Select::make('country')
                             ->label('Country')
@@ -222,6 +257,8 @@ class MemberResource extends Resource
                 Section::make('Membership')
                     ->description('Membership Details')
                     ->icon('heroicon-o-user')
+                    ->collapsible()
+                    //->collapsed()
                     ->columns(2)
                     ->schema([
 
@@ -235,9 +272,11 @@ class MemberResource extends Resource
                         Radio::make('membership_status')
                             ->inline()
                             ->options([
-                                'active' => 'Active',
-                                'inactive' => 'Inactive',
-                            ])->default('active'),
+                                '0' => 'Active',
+                                '1' => 'Inactive',
+
+                            ])->default('0'),
+
                     ]),
                 // Section::make('Account Information')
                 //     ->description('Login credentials for this member')
@@ -305,18 +344,18 @@ class MemberResource extends Resource
     {
         return $table
 
-            // ->paginated(10)
+
             ->defaultSort('memberID', 'desc')
+            ->paginated(10)
             ->modifyQueryUsing(
                 fn($query) =>
                 $query
-                    ->with(['name', 'address']) 
+                    ->with(['name', 'address'])
 
             )
             ->columns([
                 TextColumn::make('name.full_name')
                     ->label('Name')
-
                     ->sortable(['last_name', 'first_name', 'middle_name'])
 
                     ->searchable(
@@ -333,22 +372,23 @@ class MemberResource extends Resource
                             . '  ' . optional($record->name)->middle_name;
                     }),
 
-                // TextColumn::make('contact_number')
-                //     ->label('Contact Number'),
+                TextColumn::make('phone')
+                    ->label('Contact Number')
+                    ->searchable(),
 
 
                 TextColumn::make('address.full_address')
                     ->label('Address')
-                    ->sortable(['country', 'province', 'city'])
-                    ->searchable(['country', 'province', 'city']),
+                    ->sortable(['province', 'city'])
+                    ->searchable(['province', 'city'])
+                    ->wrap(),
 
+                ImageColumn::make('image_photo')
 
-                ImageColumn::make('photo')
+                    ->label('Image')
                     ->disk('public')
-                    ->size(50)
                     ->circular()
-                    ->label('Photo'),
-
+                    ->size(50),
 
                 TextColumn::make('membership_date')
                     ->searchable()
@@ -357,12 +397,28 @@ class MemberResource extends Resource
 
                 TextColumn::make('membership_status')
                     ->badge()
+
                     ->label('Status')
                     ->colors([
                         'success' => 'active',
                         'danger' => 'inactive',
                         'secondary' => 'deceased',
                     ]),
+                TextColumn::make('membership_status')
+                    ->label('Status')
+                    ->badge()
+                    ->colors([
+                        'success' => static fn($state): bool => $state === 0,
+                        'warning' => static fn($state): bool => $state === 1,
+                        'danger' => static fn($state): bool => $state === 2,
+                    ])
+                    ->formatStateUsing(fn(int $state): string => match ($state) {
+                        0 => 'Active',
+                        1 => 'Inactive',
+                        2 => 'Deceased',
+                        default => 'Unknown',
+                    }),
+
 
 
 
@@ -371,11 +427,11 @@ class MemberResource extends Resource
                 SelectFilter::make('membership_status')
                     ->label('Member Status')
                     ->options([
-                        'active' => 'Active',
-                        'inactive' => 'Inactive',
-                        'deceased' => 'Deceased',
+                        '0' => 'Active',
+                        '1' => 'Inactive',
+                        '2' => 'Deceased',
                     ])
-                    ->default('active'),
+                    ->default('0'),
             ])
 
 
@@ -402,7 +458,7 @@ class MemberResource extends Resource
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->actionsAlignment('center')
+            //  ->actionsAlignment('center')
             ->actionsColumnLabel('Action')
 
 
@@ -417,7 +473,7 @@ class MemberResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ContributionsRelationManager::class,
         ];
     }
 
@@ -429,6 +485,13 @@ class MemberResource extends Resource
             'edit' => Pages\EditMember::route('/{record}/edit'),
             //  'view' => Pages\ViewMember::route('/{record}')
         ];
+    }
+
+
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('name');
     }
 
 

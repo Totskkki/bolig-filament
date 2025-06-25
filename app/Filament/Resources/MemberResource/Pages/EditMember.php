@@ -22,7 +22,7 @@ class EditMember extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            // Actions\DeleteAction::make(),
         ];
     }
 
@@ -44,10 +44,10 @@ class EditMember extends EditRecord
             'last_name' => $name?->last_name,
             'middle_name' => $name?->middle_name,
             'suffix' => $name?->suffix,
-           // 'email' => $user?->email,
+            // 'email' => $user?->email,
             'phone' => $this->record->phone,
-           // 'username' => $user?->username,
-            'photo' => $this->record->photo,
+            // 'username' => $user?->username,
+            'image_photo' => $this->record->image_photo,
             'birthday' => $name?->birthday,
             'age' => $name?->age,
             'gender' => $name?->gender,
@@ -86,7 +86,7 @@ class EditMember extends EditRecord
         ]);
 
         // Update user
-   
+
         // Update address
         $address->update([
             'street' => $data['street'],
@@ -99,7 +99,7 @@ class EditMember extends EditRecord
         // Update member data if needed
         $this->record->update([
             'phone' => $data['phone'],
-            'photo' => $data['photo'],
+            'image_photo' => $data['image_photo'],
             'membership_status' => $data['membership_status'],
             'membership_date' => $data['membership_date'],
         ]);

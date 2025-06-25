@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+
         FilamentIcon::register([
             'panels::sidebar.group.collapse-button' => view('icons.chevron-up'),
             'users-icon' => view('icons.users'),
@@ -32,16 +32,8 @@ class AppServiceProvider extends ServiceProvider
             //'settings-icon' => view('icons.settings'),
         ]);
 
-        TextInput::configureUsing(function (TextInput $textInput) {
-            $textInput->inlineLabel();
-        });
-
-        Radio::configureUsing(function (Radio $radio) {
-            $radio->inlineLabel();
-        });
-        Action::configureUsing(function (Action $action) {
-            $action->iconButton();
-        });
-
+        TextInput::configureUsing(fn(TextInput $textInput) => $textInput->inlineLabel());
+        Radio::configureUsing(fn(Radio $radio) => $radio->inlineLabel());
+        Action::configureUsing(fn(Action $action) => $action->iconButton());
     }
 }

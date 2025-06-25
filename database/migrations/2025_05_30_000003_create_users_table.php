@@ -22,13 +22,17 @@ return new class extends Migration
             $table->string('contact_number')->nullable();
             $table->string('photo')->nullable();
 
-            $table->unsignedBigInteger('name_id')->index();     // 🔹 Add index
-            $table->unsignedBigInteger('address_id')->index();  // 🔹 Add index
+            // Custom foreign keys (do NOT use constrained here)
+            $table->unsignedBigInteger('name_id');
+            $table->foreign('name_id')->references('namesid')->on('names')->onDelete('cascade');
 
-            // $table->foreignId('address_id')->constrained('addresses')->onDelete('cascade');
+            $table->unsignedBigInteger('address_id');
+            $table->foreign('address_id')->references('addressid')->on('addresses')->onDelete('cascade');
+
             $table->rememberToken();
             $table->timestamps();
         });
+
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

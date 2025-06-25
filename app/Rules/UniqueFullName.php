@@ -1,38 +1,37 @@
 <?php
+
 namespace App\Rules;
 
-use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Support\Facades\DB;
+use App\Models\Users\Name;
 use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
 
 class UniqueFullName implements ValidationRule
 {
     protected string $firstName;
     protected ?string $middleName;
-    protected ?int $namesid;
+    protected ?int $excludeNamesId;
 
-    public function __construct(string $firstName, ?string $middleName = null, ?int $namesid = null)
+    public function __construct(string $firstName, ?string $middleName = null, ?int $excludeNamesId = null)
     {
-        $this->firstName = strtolower($firstName); // Convert to lowercase
-        $this->middleName = $middleName ? strtolower($middleName) : null;
-        $this->namesid = $namesid;
+        $this->firstName = $firstName;
+        $this->middleName = $middleName;
+        $this->excludeNamesId = $excludeNamesId;
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $lastName = strtolower($value); // Also lowercase the input last name
+        $query = Name::query()
+            ->where('first_name', $this->firstName)
+            ->where('middle_name', $this->middleName)
+            ->where('last_name', $value);
 
-        $exists = DB::table('names')
-            ->whereRaw('LOWER(first_name) = ?', [$this->firstName])
-            ->whereRaw('LOWER(middle_name) = ?', [$this->middleName])
-            ->whereRaw('LOWER(last_name) = ?', [$lastName])
-            ->when($this->namesid, function ($query) {
-                $query->where('namesid', '!=', $this->namesid);
-            })
-            ->exists();
+        if ($this->excludeNamesId) {
+            $query->where('namesid', '!=', $this->excludeNamesId);
+        }
 
-        if ($exists) {
-            $fail('A member with the same full name already exists (case-insensitive).');
+        if ($query->exists()) {
+            $fail("A person with the same full name already exists.");
         }
     }
 }

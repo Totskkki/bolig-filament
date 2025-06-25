@@ -21,23 +21,23 @@ class ManageDeceaseds extends ManageRecords
             Actions\CreateAction::make()
 
                 ->after(function ($record) {
-                      \Log::info('Triggered once for deceasedID: ' . $record->deceasedID);
+                    \Log::info('Triggered once for deceasedID: ' . $record->deceasedID);
 
 
-                    $member = \App\Models\Member::find($record->memberID);
+                    $member = \App\Models\Member::find($record->member_id);
                     if ($member) {
-                        $member->membership_status = 'deceased';
+                        $member->membership_status = '2';
                         $member->save();
                     }
 
 
 
-                    // \Illuminate\Support\Facades\Bus::chain([
-                    //     new GenerateContributionsForDeceased($record->deceasedID),
-                    //     new \App\Jobs\UpdateAdjustedAmounts,
-                    // ])->dispatch();
+                    \Illuminate\Support\Facades\Bus::chain([
+                        new GenerateContributionsForDeceased($record->deceasedID),
+                        new \App\Jobs\UpdateAdjustedAmounts,
+                    ])->dispatch();
 
-                        GenerateContributionsForDeceased::dispatch($record->deceasedID);
+                    //  GenerateContributionsForDeceased::dispatch($record->deceasedID);
 
 
                     // Optional: notify the user

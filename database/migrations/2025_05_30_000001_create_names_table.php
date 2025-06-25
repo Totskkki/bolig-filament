@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('suffix')->nullable();
             $table->string('birthday');
             $table->string('age');
-              $table->enum('gender', ['male', 'female','others']);
+            $table->enum('gender', ['male', 'female', 'others']);
             $table->timestamps();
         });
     }

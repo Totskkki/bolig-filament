@@ -38,23 +38,21 @@ class DeceasedResource extends Resource
         return $form
             ->schema([
 
-                Select::make('memberID')
+                Select::make('member_id')
                     ->label('Member Name')
                     ->searchable()
                     ->required()
                     ->preload()
                     ->getSearchResultsUsing(function (string $search) {
-                        return \App\Models\Member::with('user.name')
-                         ->where('membership_status', 'active')
-                            ->whereHas('user', function ($query) use ($search) {
-                                $query->whereHas('name', function ($query) use ($search) {
-                                    $query->whereRaw("CONCAT_WS(' ', first_name, middle_name, last_name, COALESCE(suffix, '')) LIKE ?", ["%{$search}%"]);
-                                });
+                        return \App\Models\Member::with('name')
+                            ->where('membership_status', '0')
+                            ->whereHas('name', function ($query) use ($search) {
+                                $query->whereRaw("CONCAT_WS(' ', first_name, middle_name, last_name, COALESCE(suffix, '')) LIKE ?", ["%{$search}%"]);
                             })
                             ->limit(20)
                             ->get()
                             ->mapWithKeys(function ($member) {
-                                $name = $member->user?->name;
+                                $name = $member->name;
                                 if (!$name) return [];
 
                                 $fullName = implode(' ', array_filter([
@@ -64,13 +62,13 @@ class DeceasedResource extends Resource
                                     $name->suffix,
                                 ]));
 
-
                                 return [$member->memberID => $fullName];
                             });
                     })
+
                     ->getOptionLabelUsing(function ($value): ?string {
-                        $member = \App\Models\Member::with('user.name')->find($value);
-                        $name = $member?->user?->name;
+                        $member = \App\Models\Member::with('name')->find($value);
+                        $name = $member?->name;
 
                         if (!$name) return null;
 
@@ -91,7 +89,11 @@ class DeceasedResource extends Resource
                 Textarea::make('cause_of_death')
                     ->label('Cause of Death')
                     ->rows(3)
-                    ->required(),
+                    ->required()
+                    ->regex('/^[a-zA-Z\s\-]+$/')
+                    ->validationMessages([
+                        'regex' => 'Only letters are allowed.',
+                    ]),
             ]);
     }
 
@@ -108,9 +110,9 @@ class DeceasedResource extends Resource
                 fn($query) =>
                 $query
                     ->with(['member.name', 'member.address'])
-                    // ->whereHas('member', function ($q) {
-                    //     $q->where('role', 'member');
-                    // })
+                // ->whereHas('member', function ($q) {
+                //     $q->where('role', 'member');
+                // })
             )
             ->columns([
 
@@ -125,7 +127,7 @@ class DeceasedResource extends Resource
                         });
                     })
                     ->getStateUsing(function ($record) {
-                        $name = optional($record->member?->user?->name);
+                        $name = optional($record->member?->name);
                         return $name->last_name . ', ' . $name->first_name . ' ' . $name->middle_name;
                     }),
 
@@ -159,4 +161,14 @@ class DeceasedResource extends Resource
             'index' => Pages\ManageDeceaseds::route('/'),
         ];
     }
+
+    //    public static function mutateFormDataUsing(array $data): array
+    // {
+    //     $date = \Carbon\Carbon::parse($data['date_of_death']);
+    //     $data['month'] = $date->format('m');
+    //     $data['year'] = $date->format('Y');
+
+    //     return $data;
+    // }
+
 }

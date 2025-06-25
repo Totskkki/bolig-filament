@@ -12,6 +12,8 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
+        "psr/event-dispatcher": "*",
+        "pxlrbt/filament-excel": "^2.4",
         "rinvex/countries": "^9.0",
         "umpirsky/country-list": "^2.0"
     },

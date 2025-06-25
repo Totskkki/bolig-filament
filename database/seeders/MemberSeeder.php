@@ -57,9 +57,9 @@ class MemberSeeder extends Seeder
                 'names_id' => $name->namesid,
                 'address_id' => $address->addressid,
                 'membership_date' => now(),
-                'membership_status' => 'active',
+                'membership_status' => '0',
                 'phone' => fake()->phoneNumber(),
-                'photo' => null,
+                'image_photo' => null,
             ]);
         }
     }

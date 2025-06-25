@@ -6,6 +6,7 @@ use App\Models\Contribution;
 use App\Models\Deceased;
 use App\Models\Users\Address;
 use App\Models\Users\Name;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\Model;
 
 
@@ -14,21 +15,17 @@ class Member extends Model
     protected $primaryKey = 'memberID';
 
     protected $fillable = [
-       // 'user_id',
+        // 'user_id',
         'names_id',
         'address_id',
         'membership_date',
         'membership_status',
         'phone',
-        'photo',
+        'image_photo',
     ];
 
-    // public function user()
-    // {
-    //     return $this->belongsTo(\App\Models\User::class, 'user_id', 'userid');
-    // }
 
-     public function name()
+    public function name()
     {
         return $this->belongsTo(Name::class, 'names_id', 'namesid');
     }
@@ -49,56 +46,28 @@ class Member extends Model
 
     public function deceased()
     {
-        return $this->hasMany(Deceased::class, 'memberID', 'memberID');
+        return $this->hasMany(Deceased::class, 'memberID', 'member_id');
     }
 
-    // public function getGroupedDeceasedNamesAttribute()
-    // {
-    //     return $this->contributions()
-    //         ->with('deceased.member.user.name')
-    //         ->get()
-    //         ->map(function ($contribution) {
-    //             $user = optional($contribution->deceased?->member?->user?->name);
-    //             if ($user) {
-    //                 return "{$user->last_name}, {$user->first_name} {$user->middle_name}";
-    //             }
-    //             return null;
-    //         })
-    //         ->filter() // remove nulls
-    //         ->unique() // remove duplicates
-    //         ->implode(', ');
-    // }
 
 
-    //     public function getGroupedDeceasedNamesAttribute()
-    // {
-    //     return $this->contributions()
-    //         ->where('status', '!=', 1) // Only unpaid contributions
-    //         ->with('deceased.member.name')
-    //         ->get()
-    //         ->map(function ($contribution) {
-    //             $user = optional($contribution->deceased?->member?->user?->name);
-    //             if ($user) {
-    //                 return "{$user->last_name}, {$user->first_name} {$user->middle_name}";
-    //             }
-    //             return null;
-    //         })
-    //         ->filter()
-    //         ->unique()
-    //         ->sort()
-    //         ->implode(', ');
-    // }
 
-    // protected static function booted(): void
-    // {
-    //     static::deleting(function ($member) {
-    //         $user = $member->name;
 
-    //         if ($user) {
-    //             $user->name?->delete();
-    //             $user->address?->delete();
-    //           //  $user->delete();
-    //         }
-    //     });
-    // }
+    protected static function booted()
+    {
+        // static::saved(function () {
+        //     Cache::forget('member_status_counts');
+        //     self::refreshStatusCountsCache();
+        // });
+
+        // static::deleted(function () {
+        //     Cache::forget('member_status_counts');
+        //     self::refreshStatusCountsCache();
+        // });
+        static::deleting(function ($member) {
+
+            $member->name?->delete();
+            $member->address?->delete();
+        });
+    }
 }

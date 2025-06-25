@@ -16,12 +16,17 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
         $this->call([
-        NameSeeder::class,
-        AddressSeeder::class,
-        UserSeeder::class,
-        MemberSeeder::class,
+            NameSeeder::class,
+            AddressSeeder::class,
+            UserSeeder::class,
+            MemberSeeder::class,
+            LocationSeeder::class,
 
-    ]);
+        ]);
+        \App\Models\SystemSetting::firstOrCreate(
+            ['key' => 'mortuary_contribution'],
+            ['value' => '15', 'description' => 'Per member contribution']
+        );
         // User::create([
         //     'name' => 'Admin User',
         //     'email' => 'admin@example.com',

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class Deceased extends Model
 {
@@ -10,24 +11,27 @@ class Deceased extends Model
     protected $primaryKey = 'deceasedID';
 
     protected $fillable = [
-        'memberID',
+        'member_id',
+        'month',
+        'year',
         'date_of_death',
         'cause_of_death',
     ];
     public function member()
     {
-        return $this->belongsTo(Member::class, 'memberID');
+        return $this->belongsTo(Member::class, 'member_id', 'memberID');
     }
 
-    public function deceasedMember()
-    {
-        return $this->belongsTo(Member::class, 'memberID');
-    }
 
-    public function contributions()
+
+    protected static function booted()
     {
-        return $this->hasMany(Contribution::class, 'deceasedID');
+        static::creating(function ($deceased) {
+            if ($deceased->date_of_death) {
+                $date = Carbon::parse($deceased->date_of_death);
+                $deceased->month = $date->format('m'); // or 'F' for full month name
+                $deceased->year = $date->format('Y');
+            }
+        });
     }
- 
-    
 }

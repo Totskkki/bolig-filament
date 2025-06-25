@@ -13,9 +13,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+
 class User extends Authenticatable implements FilamentUser, HasName
 {
     protected $table = 'users';
+     use Notifiable;
 
 
     protected $primaryKey = 'userid';

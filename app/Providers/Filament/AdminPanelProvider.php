@@ -40,8 +40,13 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->sidebarCollapsibleOnDesktop()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Slate,
             ])
+            ->font('Poppins')
+            ->databaseNotifications()
+            ->favicon('images/favicon.png')
+            ->spa()
+
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -71,7 +76,7 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 FilamentShieldPlugin::make(),
             ]);
-        }
+    }
 
     //         ->navigation(function (NavigationBuilder $builder): NavigationBuilder {
     //             return $builder
@@ -93,4 +98,4 @@ class AdminPanelProvider extends PanelProvider
     //                 ]);
     //         });
     // }
-    }
+}

@@ -5,13 +5,12 @@ namespace App\Jobs;
 use App\Models\Contribution;
 use App\Models\Deceased;
 use App\Models\Member;
+use App\Models\SystemSetting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
-use App\Enums\ContributionStatus;
 
 class GenerateContributionsForDeceased implements ShouldQueue
 {
@@ -24,82 +23,61 @@ class GenerateContributionsForDeceased implements ShouldQueue
         $this->deceasedID = $deceasedID;
     }
 
-    // public function handle(): void
-    // {
-    //     $deceased = Deceased::find($this->deceasedID);
-    //     if (!$deceased) {
-    //         \Log::error('Deceased not found for ID: ' . $this->deceasedID);
-    //         return;
-    //     }
-
-    //     $totalDeaths = Deceased::count();
-    //     $baseAmount = 15;
-    //     $adjustedAmount = $totalDeaths * $baseAmount;
-
-    //     Member::whereDoesntHave('deceased')->chunk(100, function ($members) use ($deceased, $baseAmount, $adjustedAmount) {
-    //         foreach ($members as $member) {
-    //             Contribution::create([
-    //                 'payer_memberID' => $member->memberID,
-    //                 'deceasedID' => $deceased->deceasedID,
-    //                 'amount' => $baseAmount,
-    //                 'adjusted_amount' => $adjustedAmount,
-    //                 'payment_date' => null,
-    //                 'status' => 'pending',
-    //                 'remarks' => 'Contribution for death',
-    //             ]);
-
-    //             $totalOwed = Contribution::where('payer_memberID', $member->memberID)
-    //                 ->where('status', 'pending')
-    //                 ->sum('amount');
-
-    //             Contribution::where('payer_memberID', $member->memberID)
-    //                 ->where('status', 'pending')
-    //                 ->update(['adjusted_amount' => $totalOwed]);
-    //         }
-    //     });
-    // }
     public function handle(): void
     {
-        $deceased = Deceased::find($this->deceasedID);
-        if (!$deceased) {
-            \Log::error('Deceased not found for ID: ' . $this->deceasedID);
+        // Load member and name via nested eager load
+        $deceased = Deceased::with('member.name')->find($this->deceasedID);
+
+        if (
+            !$deceased ||
+            !$deceased->member ||
+            !$deceased->member->name
+        ) {
+            \Log::error('Missing related name for deceased ID: ' . $this->deceasedID);
             return;
         }
 
-        $baseAmount = 15;
 
-        // Step 1: Create contributions for all non-deceased members
-        $payerIDs = [];
+        $deceasedName = optional($deceased->member->name)?->full_name ?? 'Unknown Deceased';
 
-        Member::whereDoesntHave('deceased')->chunk(100, function ($members) use ($deceased, $baseAmount, &$payerIDs) {
-            foreach ($members as $member) {
-                Contribution::create([
-                    'payer_memberID' => $member->memberID,
-                    'deceasedID' => $deceased->deceasedID,
-                    'amount' => $baseAmount,
-                    'adjusted_amount' => 0, // Temporarily 0
-                    'payment_date' => null,
-                    'status' => '0',
-                    'remarks' => 'Contribution for death',
-                ]);
 
-                $payerIDs[] = $member->memberID;
-            }
-        });
 
-        // Step 2: Update adjusted_amount for *all* members (not just current chunk)
-        $allPayers = Contribution::where('status', '0')
-            ->pluck('payer_memberID')
-            ->unique();
+        \Log::info('Deceased name:', [
+            'deceasedID' => $this->deceasedID,
+            'name' => $deceased?->member?->name
+        ]);
 
-        foreach ($allPayers as $payerID) {
-            $totalOwed = Contribution::where('payer_memberID', $payerID)
-               ->where('status', '0')
-                ->sum('amount');
 
-            Contribution::where('payer_memberID', $payerID)
-                ->where('status', '0')
-                ->update(['adjusted_amount' => $totalOwed]);
-        }
+        $baseAmount = SystemSetting::where('key', 'mortuary_contribution')->value('value') ?? 15;
+
+        $now = now();
+        $month = $now->format('m');
+        $year = $now->format('Y');
+
+        Member::where('membership_status', 0)
+            ->select('memberID')
+            ->chunk(1000, function ($members) use ($deceased, $baseAmount, $deceasedName, $month, $year, $now) {
+                $data = [];
+
+                foreach ($members as $member) {
+                    $data[] = [
+                        'payer_memberID' => $member->memberID,
+                        'deceased_id' => $deceased->deceasedID,
+                        'amount' => $baseAmount,
+                        'adjusted_amount' => 0,
+                        'payment_date' => null,
+                        'month' => $month,
+                        'year' => $year,
+                        'status' => 0,
+                        'remarks' => 'Contribution for death of ' . $deceasedName,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+
+                Contribution::insert($data);
+            });
+
+        \Log::info('Contribution records generated for deceasedID: ' . $this->deceasedID);
     }
 }

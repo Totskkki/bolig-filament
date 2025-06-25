@@ -13,8 +13,13 @@ return new class extends Migration
     {
         Schema::create('deceased', function (Blueprint $table) {
             $table->bigInteger('deceasedID', true);
-            $table->bigInteger('memberID')->nullable()->index('fk_deceased_member')->index();
+            //  $table->bigInteger('member_id')->nullable()->index('fk_deceased_member')->index();
+
+            $table->unsignedBigInteger('member_id');
+            $table->foreign('member_id')->references('memberID')->on('members')->cascadeOnDelete();
             $table->date('date_of_death');
+            $table->string('month');
+            $table->string('year');
             $table->text('cause_of_death')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->useCurrent();
