@@ -3,8 +3,10 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MemberResource\RelationManagers\ContributionsRelationManager;
+use App\Filament\Resources\MemberResource\Pages\MemberUnpaidContributions;
 
 use App\Filament\Resources\MemberResource\Pages;
+
 use App\Models\Member;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -46,7 +48,7 @@ class MemberResource extends Resource
 {
     protected static ?string $model = Member::class;
 
-    //  protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
     //protected static ?string $activeNavigationIcon = 'heroicon-o-document-text';
 
 
@@ -58,10 +60,10 @@ class MemberResource extends Resource
     //protected static ?string $navigationIcon = 'heroicon-o-users';
 
 
-    public static function getNavigationIcon(): string | Htmlable | null
-    {
-        return new HtmlString(view('icons.users')->render());
-    }
+    // public static function getNavigationIcon(): string | Htmlable | null
+    // {
+    //     return new HtmlString(view('icons.users')->render());
+    // }
 
 
     public static function form(Form $form): Form
@@ -117,7 +119,16 @@ class MemberResource extends Resource
                             ->rule(function (Get $get, \Filament\Forms\Components\Component $component) {
                                 $firstName = $get('first_name');
                                 $middleName = $get('middle_name');
+                                $lastName = $get('last_name'); // Needed if you want to guard further
                                 $record = $component->getContainer()->getRecord();
+
+                                if (! $firstName) {
+                                    return null;
+                                } elseif (! $middleName) {
+                                    return null;
+                                } elseif (! $lastName) {
+                                    return null;
+                                }
 
                                 return new UniqueFullName(
                                     $firstName,
@@ -125,6 +136,7 @@ class MemberResource extends Resource
                                     $record?->name?->namesid
                                 );
                             })
+
                             ->validationMessages([
                                 'required' => 'Last name is required.',
                                 'regex' => 'Only letters, spaces, and hyphens allowed.',
@@ -190,6 +202,7 @@ class MemberResource extends Resource
                                     ->readonly(),
                             ]),
 
+
                         FileUpload::make('image_photo')
                             ->avatar()
                             ->label('Upload Photo')
@@ -197,8 +210,35 @@ class MemberResource extends Resource
                             ->directory('images')
                             ->image()
                             ->previewable(true)
-                            ->visibility('public')
+                            ->visibility('public'),
+
+                        Select::make('role')
+                            ->label('Role')
+                            ->options([
+                                'member' => 'Member',
+                                'coordinator' => 'Coordinator',
+
+                            ])
+                            ->required()
+                            ->default('member')
+                            ->columnSpan(1),
+
                         // ->columnSpan(1),
+                        Select::make('coordinator_id')
+                            ->label('Assign Coordinator')
+                            ->options(
+                                fn() =>
+                                \App\Models\Member::with('name')
+                                    ->where('role', 'coordinator')
+                                    ->get()
+                                    ->pluck('full_name', 'memberID')
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->visible(fn(Get $get) => $get('role') === 'member'),
+
+
                     ]),
 
 
@@ -278,64 +318,7 @@ class MemberResource extends Resource
                             ])->default('0'),
 
                     ]),
-                // Section::make('Account Information')
-                //     ->description('Login credentials for this member')
-                //     ->icon('heroicon-o-lock-closed')
-                //     ->columns(2)
-                //     // ->relationship('users')
-                //     ->schema([
-                //       TextInput::make('username')
-                //             ->label('Username')
-                //             ->required()
-                //             ->minLength(4)
-                //             ->maxLength(20)
-                //             ->regex('/^[a-zA-Z0-9_]+$/')
-                //             ->rules(function ($livewire) {
-                //                 // Access the Member record
-                //                 $member = $livewire->record;
 
-                //                 // Get the related User ID
-                //                 $userId = $member?->user?->userid;
-
-                //                 return [
-                //                     Rule::unique('users', 'username')
-                //                         ->ignore($userId, 'userid'),
-                //                 ];
-                //             })
-                //             ->validationMessages([
-                //                 'regex' => 'Username may only contain letters, numbers, and underscores.',
-                //                 'unique' => 'This username is already taken.',
-                //             ]),
-
-
-                //         TextInput::make('email')
-                //             ->label('Email')
-                //             ->email()
-                //              ->rules(function ($livewire) {
-                //                 // Access the Member record
-                //                 $member = $livewire->record;
-
-                //                 // Get the related User ID
-                //                 $userId = $member?->user?->userid;
-
-                //                 return [
-                //                     Rule::unique('users', 'email')
-                //                         ->ignore($userId, 'userid'),
-                //                 ];
-                //             })
-                //             ->required()
-                //             ->maxLength(255)
-                //              ->validationMessages([
-
-                //                 'unique' => 'This email is already taken.',
-                //             ]),
-
-                //         TextInput::make('password')
-                //             ->label('Password')
-                //             ->password()
-                //             // ->required()
-                //             ->maxLength(255),
-                //     ]),
 
             ]);
     }
@@ -349,8 +332,8 @@ class MemberResource extends Resource
             ->paginated(10)
             ->modifyQueryUsing(
                 fn($query) =>
-                $query
-                    ->with(['name', 'address'])
+                $query->with(['name', 'address', 'coordinator.name'])
+
 
             )
             ->columns([
@@ -418,9 +401,12 @@ class MemberResource extends Resource
                         2 => 'Deceased',
                         default => 'Unknown',
                     }),
-
-
-
+                TextColumn::make('coordinator.name.full_name')
+                    ->label('Coordinator')
+                    ->badge()
+                    // ->searchable()
+                    ->color('gray')
+                    ->getStateUsing(fn($record) => optional($record->coordinator?->name)->full_name ?? '—')
 
             ])
             ->filters([
@@ -435,25 +421,19 @@ class MemberResource extends Resource
             ])
 
 
-            //->filtersLayout(FiltersLayout::AboveContent)
-            // 👈 separates it into its own dropdown
-            // ->actions([
-
-            //     Tables\Actions\ViewAction::make(),
-            //     Tables\Actions\EditAction::make(),
-            //     Tables\Actions\DeleteAction::make(),
-            //     ViewAction::make()
-            //     ->label('View')
-            //     ->modalHeading('View Member Details')
-            //     ->form(fn (ViewRecord $livewire) => (new ViewMember($livewire->getRecord()))->form(new Form()))
-            //     // ->label('Action')
-            // ])
             ->actions([
-                // ViewAction::make()
-                //     ->label('View')
-                //     ->modalHeading('View Member Details')
-                //     ->modalWidth('4xl')
-                //     ->form(fn(ViewRecord $livewire) => (new ViewMember($livewire->getRecord()))->form(new Form())),
+
+                Tables\Actions\Action::make('view_unpaid')
+                    ->label('Unpaid Contributions')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn($record) => route('filament.admin.resources.members.unpaid', [
+                        'record' => $record->getKey(),
+                    ]))
+                    ->openUrlInNewTab(),
+
+
+
+
 
                 EditAction::make(),
                 DeleteAction::make(),
@@ -483,9 +463,10 @@ class MemberResource extends Resource
             'index' => Pages\ListMembers::route('/'),
             'create' => Pages\CreateMember::route('/create'),
             'edit' => Pages\EditMember::route('/{record}/edit'),
-            //  'view' => Pages\ViewMember::route('/{record}')
+            'unpaid' => Pages\MemberUnpaidContributions::route('/{record}/unpaid'),
         ];
     }
+
 
 
 

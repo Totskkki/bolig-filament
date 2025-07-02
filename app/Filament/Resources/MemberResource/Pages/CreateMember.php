@@ -7,6 +7,7 @@ use App\Models\Member;
 use App\Models\Users\Address;
 use App\Models\Users\Name;
 use App\Models\User;
+use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -18,12 +19,30 @@ class CreateMember extends CreateRecord
 {
     protected static string $resource = MemberResource::class;
 
+
     protected function getSavedNotification(): ?Notification
+
+
     {
         return Notification::make()
             ->title('Member created successfully')
             ->success();
     }
+
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            // Actions\DeleteAction::make(),
+            Actions\Action::make('back')
+                ->label('Back')
+                ->icon('heroicon-o-arrow-left')
+                ->url($this->getResource()::getUrl('index'))
+                ->color('gray'),
+
+        ];
+    }
+
 
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
@@ -69,6 +88,8 @@ class CreateMember extends CreateRecord
             'membership_status' => $data['membership_status'],
             'phone' => $data['phone'],
             'image_photo' => $data['image_photo'],
+            'role' => $data['role'],
+            'coordinator_id' => $data['coordinator_id'],
         ];
     }
 }

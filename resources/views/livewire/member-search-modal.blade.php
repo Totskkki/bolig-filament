@@ -2,7 +2,7 @@
     <input
         type="text"
         wire:model.debounce.500ms="search"
-        class="w-full border p-2 mb-4"
+        class="w-full p-2 mb-4 border"
         placeholder="Search member by name..."
         autofocus
     >
@@ -19,7 +19,7 @@
                 ])));
             @endphp
             <li wire:click="selectMember({{ $member->memberID }})"
-                class="cursor-pointer hover:bg-gray-200 p-2"
+                class="p-2 cursor-pointer hover:bg-gray-200"
             >
                 {{ $fullName }}
             </li>

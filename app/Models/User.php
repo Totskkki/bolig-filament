@@ -12,6 +12,8 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 
 class User extends Authenticatable implements FilamentUser, HasName
@@ -97,4 +99,13 @@ class User extends Authenticatable implements FilamentUser, HasName
     // {
     //     return 'username';
     // }
+    public static function logAudit(string $action, string $description): void
+    {
+        DB::table('audit_logs')->insert([
+            'user_id' => Auth::id(),
+            'action' => $action,
+            'description' => $description,
+            'created_at' => now(),
+        ]);
+    }
 }

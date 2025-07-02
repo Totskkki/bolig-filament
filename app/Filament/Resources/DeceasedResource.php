@@ -3,27 +3,21 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\DeceasedResource\Pages;
-use App\Filament\Resources\DeceasedResource\RelationManagers;
-use App\Forms\Components\MemberPicker;
+
 use App\Models\Deceased;
+
+
 use App\Models\Member;
-use Filament\Forms;
-use App\Models\Contribution;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
-
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
 
 
@@ -31,68 +25,93 @@ class DeceasedResource extends Resource
 {
     protected static ?string $model = Deceased::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-identification';
+
+    // protected static ?string $navigationLabel = 'Deceased';
+    protected static ?int $navigationSort = 3;
+
+    public static function getModelLabel(): string
+    {
+        return 'Deceased';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Deceased';
+    }
+
 
     public static function form(Form $form): Form
     {
         return $form
+
             ->schema([
+                Grid::make(1)
+                    ->schema([
 
-                Select::make('member_id')
-                    ->label('Member Name')
-                    ->searchable()
-                    ->required()
-                    ->preload()
-                    ->getSearchResultsUsing(function (string $search) {
-                        return \App\Models\Member::with('name')
-                            ->where('membership_status', '0')
-                            ->whereHas('name', function ($query) use ($search) {
-                                $query->whereRaw("CONCAT_WS(' ', first_name, middle_name, last_name, COALESCE(suffix, '')) LIKE ?", ["%{$search}%"]);
+                        Select::make('member_id')
+                            ->label('Member Name')
+                            ->searchable()
+                            ->required()
+                            ->preload()
+                            ->getSearchResultsUsing(function (string $search) {
+                                return \App\Models\Member::with('name')
+                                    ->where('membership_status', '0')
+                                    ->whereHas('name', function ($query) use ($search) {
+                                        $query->whereRaw("CONCAT_WS(' ', first_name, middle_name, last_name, COALESCE(suffix, '')) LIKE ?", ["%{$search}%"]);
+                                    })
+                                    ->limit(20)
+                                    ->get()
+                                    ->mapWithKeys(function ($member) {
+                                        $name = $member->name;
+                                        if (!$name) return [];
+
+                                        $fullName = implode(' ', array_filter([
+                                            $name->first_name,
+                                            $name->middle_name,
+                                            $name->last_name,
+                                            $name->suffix,
+                                        ]));
+
+                                        return [$member->memberID => $fullName];
+                                    });
                             })
-                            ->limit(20)
-                            ->get()
-                            ->mapWithKeys(function ($member) {
-                                $name = $member->name;
-                                if (!$name) return [];
 
-                                $fullName = implode(' ', array_filter([
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $member = \App\Models\Member::with('name')->find($value);
+                                $name = $member?->name;
+
+                                if (!$name) return null;
+
+                                return implode(' ', array_filter([
                                     $name->first_name,
                                     $name->middle_name,
                                     $name->last_name,
                                     $name->suffix,
                                 ]));
+                            })
+                            ->required(),
+                        DatePicker::make('date_of_death')
+                            ->label('Date of Death')
+                            ->maxDate(\Carbon\Carbon::today())
+                            ->native(false)
+                            ->required(),
 
-                                return [$member->memberID => $fullName];
-                            });
-                    })
+                        // Textarea::make('cause_of_death')
+                        //     ->label('Cause of Death')
+                        //     ->rows(3)
+                        //     ->required()
+                        //     ->regex('/^[a-zA-Z\s\-]+$/')
+                        //     ->validationMessages([
+                        //         'regex' => 'Only letters are allowed.',
 
-                    ->getOptionLabelUsing(function ($value): ?string {
-                        $member = \App\Models\Member::with('name')->find($value);
-                        $name = $member?->name;
+                        //     ]),
+                        RichEditor::make('cause_of_death')
 
-                        if (!$name) return null;
+                            ->fileAttachmentsDisk('s3')
+                            ->fileAttachmentsDirectory('attachments')
+                            ->fileAttachmentsVisibility('private'),
 
-                        return implode(' ', array_filter([
-                            $name->first_name,
-                            $name->middle_name,
-                            $name->last_name,
-                            $name->suffix,
-                        ]));
-                    })
-                    ->required(),
-                DatePicker::make('date_of_death')
-                    ->label('Date of Death')
-                    ->maxDate(\Carbon\Carbon::today())
-                    ->native(false)
-                    ->required(),
-
-                Textarea::make('cause_of_death')
-                    ->label('Cause of Death')
-                    ->rows(3)
-                    ->required()
-                    ->regex('/^[a-zA-Z\s\-]+$/')
-                    ->validationMessages([
-                        'regex' => 'Only letters are allowed.',
                     ]),
             ]);
     }
@@ -132,7 +151,9 @@ class DeceasedResource extends Resource
                     }),
 
                 TextColumn::make('date_of_death')->date()->label('Date of Death'),
-                TextColumn::make('cause_of_death')->label('Cause of Death'),
+                TextColumn::make('cause_of_death')->label('Cause of Death')
+                    ->html()
+                    ->wrap(),
                 TextColumn::make('created_at')
                     ->label('Created at')
                     ->since(),
@@ -145,7 +166,8 @@ class DeceasedResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->modalWidth('md'),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

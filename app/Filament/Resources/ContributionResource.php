@@ -5,13 +5,12 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ContributionResource\Pages;
 use App\Filament\Resources\ContributionResource\RelationManagers;
 use App\Models\Contribution;
-use App\Models\Deceased;
-use App\Models\Member;
-use Filament\Forms;
 
+use Illuminate\Support\Str;
 
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 
@@ -34,8 +33,9 @@ class ContributionResource extends Resource
 {
     protected static ?string $model = Contribution::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?int $navigationSort = 4;
+    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+    protected static ?string $navigationGroup = 'Payables';
+    //protected static ?int $navigationSort = 2;
 
     // public static function getTableQuery(): Builder
     // {
@@ -53,22 +53,11 @@ class ContributionResource extends Resource
     {
         return $table
             ->striped()
-
-
-            // ->modifyQueryUsing(function ($query) {
-            //     $filters = request()->input('tableFilters', []);
-            //     $query = \App\Models\Contribution::query()->filteredGrouped($filters);
-
-            //     //dd($query->toSql(), $query->getBindings());
-
-            //     return $query;
-            // })
-
-            ->modifyQueryUsing(function () {
+            ->modifyQueryUsing(function ($query) {
                 $filters = request()->input('tableFilters', []);
-
-                return \App\Models\Contribution::query()->filteredGrouped($filters);
+                return $query->filteredGrouped($filters);
             })
+
 
 
             ->columns([
@@ -83,8 +72,9 @@ class ContributionResource extends Resource
                         });
                     }),
 
-                BadgeColumn::make('grouped_deceased_names')
+                TextColumn::make('grouped_deceased_names')
                     ->label('Deceased')
+                    ->badge()
                     ->html()
                     ->wrap(),
 
@@ -94,13 +84,15 @@ class ContributionResource extends Resource
 
                 TextColumn::make('payment_date')
                     ->label('Last Payment Date')
-                    ->date()
                     ->sortable()
                     ->formatStateUsing(function ($state, $record) {
-                        return $record->latest_unpaid_status == 1 && $state
-                            ? \Carbon\Carbon::parse($state)->format('F j, Y')
-                            : '—';
+                        if ($record->latest_unpaid_status == 1 && $state) {
+                            return \Carbon\Carbon::parse($state)->format('F j, Y');
+                        }
+
+                        return 'Unpaid';
                     }),
+
 
 
                 TextColumn::make('latest_unpaid_status')
@@ -133,6 +125,7 @@ class ContributionResource extends Resource
                         'style' => 'max-width: 400px; white-space: normal; word-wrap: break-word;',
                     ])
                     ->searchable(),
+
 
             ])
             ->filters([
@@ -185,50 +178,82 @@ class ContributionResource extends Resource
                     ->color('primary'),
             ])
 
+
             ->actions([
                 Tables\Actions\Action::make('payContribution')
                     ->label('Pay Contribution')
                     ->icon('heroicon-o-banknotes')
                     ->color('success')
-                    ->action(function ($record) {
-                        // Update all unpaid contributions for this payer
+                    ->requiresConfirmation()
+                    ->visible(fn($record) => (int) ($record->latest_unpaid_status ?? 0) === 0)
+                    ->action(function ($record, $livewire) {
+                        $batchId = Str::uuid()->toString(); // unique for this payment
+                        $now = now();
+
                         \App\Models\Contribution::where('payer_memberID', $record->payer_memberID)
                             ->where('status', 0)
                             ->update([
                                 'status' => 1,
-                                'payment_date' => now(),
+                                'payment_date' => $now,
+                                'payment_batch' => $batchId,
                             ]);
 
                         \Filament\Notifications\Notification::make()
                             ->title('Payment Successful')
-                            ->body('All unpaid contributions for this payer have been marked as paid.')
+                            ->body('All unpaid contributions have been marked as paid.')
                             ->success()
                             ->send();
-                    })
-                    ->requiresConfirmation()
-                    ->visible(fn($record) => (int) ($record->latest_unpaid_status ?? 0) === 0),
+
+                        // Redirect to receipt using payer + batch
+                        return redirect()->route('contribution.receipt', [
+                            'payer' => $record->payer_memberID,
+                            'batch' => $batchId,
+                        ]);
+                    }),
+                Action::make('viewReceipt')
+                    ->label('View Receipt')
+                    ->icon('heroicon-o-document-text')
+                    ->visible(fn($record) => (int) $record->latest_unpaid_status === 1)
+                    ->url(fn($record) => route('contribution.receipt', [
+                        'payer' => $record->payer_memberID,
+                        'batch' => $record->payment_batch,
+                    ]), true),
+
+
+
             ])
+
+
+
+
 
 
             ->bulkActions([
                 Tables\Actions\BulkAction::make('markAsPaid')
                     ->label('Mark as Paid')
-                    ->action(function ($records) {
+
+                    ->action(function ($records, $livewire) {
+                        $batchId = Str::uuid()->toString(); // or you can use now()->timestamp
+
                         foreach ($records as $record) {
                             \App\Models\Contribution::where('payer_memberID', $record->payer_memberID)
                                 ->where('status', 0)
                                 ->update([
-                                    'payment_date' => now(),
                                     'status' => 1,
+                                    'payment_date' => now(),
+                                    'payment_batch' => $batchId,
                                 ]);
                         }
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('Bulk Payment Processed')
-                            ->body('All selected payers\' unpaid contributions have been marked as paid.')
-                            ->success()
-                            ->send();
+                        $payerIds = $records->pluck('payer_memberID')->unique()->values();
+
+                        return redirect()->route('contribution.receipt.bulk', [
+                            'payer_ids' => $payerIds->implode(','),
+                            'batch' => $batchId,
+                        ]);
                     })
+
+
                     ->requiresConfirmation()
                     ->color('success')
                     ->icon('heroicon-o-currency-dollar'),
@@ -249,8 +274,8 @@ class ContributionResource extends Resource
     {
         return [
             'index' => Pages\ListContributions::route('/'),
-            'create' => Pages\CreateContribution::route('/create'),
-            'edit' => Pages\EditContribution::route('/{record}/edit'),
+            //'create' => Pages\CreateContribution::route('/create'),
+            //'edit' => Pages\EditContribution::route('/{record}/edit'),
         ];
     }
 }

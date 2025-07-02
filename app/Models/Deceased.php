@@ -23,13 +23,23 @@ class Deceased extends Model
     }
 
 
+    public function contributions()
+{
+    return $this->hasMany(Contribution::class, 'deceased_id', 'deceasedID');
+}
+
+    public function getFullNameAttribute()
+    {
+        return $this->member?->full_name ?? 'N/A';
+    }
+
 
     protected static function booted()
     {
         static::creating(function ($deceased) {
             if ($deceased->date_of_death) {
                 $date = Carbon::parse($deceased->date_of_death);
-                $deceased->month = $date->format('m'); // or 'F' for full month name
+                $deceased->month = (int) $date->format('m');
                 $deceased->year = $date->format('Y');
             }
         });

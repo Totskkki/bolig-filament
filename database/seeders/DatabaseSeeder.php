@@ -27,27 +27,6 @@ class DatabaseSeeder extends Seeder
             ['key' => 'mortuary_contribution'],
             ['value' => '15', 'description' => 'Per member contribution']
         );
-        // User::create([
-        //     'name' => 'Admin User',
-        //     'email' => 'admin@example.com',
-        //     'password' => bcrypt('password'),
-        //     'role' => 'admin',
-        // ]);
 
-        // User::create([
-        //     'name' => 'Staff User',
-        //     'email' => 'staff@example.com',
-        //     'password' => bcrypt('password'),
-        //     'role' => 'staff',
-        // ]);
-        // Member::create([
-        //     'first_name' => 'Tots',
-        //     'last_name' => 'Totsky',
-        //     'birthdate' => '2001-12-01', // better format
-        //     'age' => 23, // age should be an integer
-        //     'address' => 'Koronadal City',
-        //     'contact_number' => '09677819501',
-        //     'status' => 'active',
-        // ]);
     }
 }

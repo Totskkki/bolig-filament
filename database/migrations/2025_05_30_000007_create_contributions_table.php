@@ -12,25 +12,28 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('contributions', function (Blueprint $table) {
-            $table->bigInteger('consid', true);
+            $table->id('consid');
 
             $table->unsignedBigInteger('payer_memberID');
             $table->foreign('payer_memberID')->references('memberID')->on('members')->cascadeOnDelete();
-            // $table->bigInteger('payer_memberID')->index('fk_contribution_member')->index();
-
-            //$table->unsignedBigInteger('deceasedID');
-            //$table->foreign('deceasedID')->references('deceasedID')->on('deceased')->cascadeOnDelete();
-
-            $table->bigInteger('deceased_id')->index('fk_deceased')->index();
+            $table->unsignedBigInteger('deceased_id')->nullable();
+            $table->foreign('deceased_id')->references('deceasedID')->on('deceased')->nullOnDelete();
             $table->decimal('amount', 15);
             $table->decimal('adjusted_amount')->nullable();
-            $table->date('payment_date')->nullable();
+            $table->dateTime('payment_date')->nullable();
+            $table->string('payment_batch')->nullable();
             $table->string('month')->nullable();
             $table->string('year')->nullable();
             $table->tinyInteger('status')->default(0)->comment('0=unpaid, 1=paid');
-            //$table->boolean('is_paid')->default(false);
-            $table->timestamp('paid_at')->nullable();
+            $table->tinyInteger('release_status')->default(0)->comment('0=pending, 1=released');
+            $table->unsignedBigInteger('released_by')->nullable();
+            $table->foreign('released_by')->references('userid')->on('users')->nullOnDelete();
+            $table->timestamp('released_at')->nullable();
+            $table->string('release_receipt_path')->nullable();
+            $table->string('signature_path')->nullable();
             $table->text('remarks')->nullable();
+            $table->unsignedBigInteger('coordinator_id')->nullable();
+            $table->foreign('coordinator_id')->references('memberID')->on('members')->onDelete('set null');
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->useCurrent();
         });

@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Contribution extends Model
 {
@@ -27,6 +28,10 @@ class Contribution extends Model
         'remarks',
     ];
 
+    public function coordinator()
+    {
+        return $this->belongsTo(Member::class, 'coordinator_id');
+    }
     public function payer()
     {
         return $this->belongsTo(Member::class, 'payer_memberID', 'memberID');
@@ -76,10 +81,23 @@ class Contribution extends Model
     }
 
 
+    // public function unpaidContributions()
+    // {
+    //     return $this->hasMany(Contribution::class, 'payer_memberID')->where('status', '!=', 1);
+    // }
+
+    //     public function unpaidContributions()
+    // {
+    //     return $this->hasMany(Contribution::class, 'payer_memberID', 'memberID')
+    //         ->where('status', 0); // assuming 0 means unpaid
+    // }
     public function unpaidContributions()
     {
-        return $this->hasMany(Contribution::class, 'payer_memberID')->where('status', '!=', 1);
+        return $this->hasMany(\App\Models\Contribution::class, 'payer_memberID', 'memberID')
+            ->where('status', 0); // adjust if needed
     }
+
+
 
 
 
@@ -105,46 +123,18 @@ class Contribution extends Model
             ->latest('payment_date')
             ->value('payment_date');
     }
-    // public function scopeFilteredGrouped($query, $filters = [])
-    // {
-    //     $year = $filters['year'] ?? null;
-    //     $month = $filters['month'] ?? null;
-    //     $status = $filters['status'] ?? null;
 
-    //     $query->selectRaw('MAX(consid) as consid')
-    //         ->selectRaw('payer_memberID, MAX(payment_date) as payment_date')
-    //         ->selectRaw('SUM(CASE WHEN status = 0 THEN amount ELSE 0 END) as total_unpaid_amount')
-    //         ->selectRaw('MAX(status) as latest_unpaid_status')
-    //         ->selectRaw('GROUP_CONCAT(DISTINCT deceased_id) as deceased_ids')
-    //         ->selectRaw("GROUP_CONCAT(DISTINCT remarks SEPARATOR '; ') as remarks")
-    //         ->with(['payer.name', 'deceased.member.name'])
-    //         ->groupBy('payer_memberID');
 
-    //     // Apply status filter here based on latest_unpaid_status
-    //     if (!is_null($status) && $status !== '') {
-    //         $query->having('latest_unpaid_status', '=', $status);
-    //     }
-
-    //     if (!empty($month)) {
-    //         $query->whereMonth('payment_date', $month);
-    //     }
-
-    //     if (!empty($year)) {
-    //         $query->whereYear('payment_date', $year);
-    //     }
-
-    //     return $query;
-    // }
     public function scopeFilteredGrouped($query, $filters = [])
     {
         $year = $filters['year']['value'] ?? $filters['year'] ?? null;
         $month = $filters['month']['value'] ?? $filters['month'] ?? null;
         $status = $filters['status']['value'] ?? $filters['status'] ?? null;
 
-        // Use integer comparison — your DB columns are integers
         if (!empty($month)) {
             $query->where('month', (int) $month);
         }
+
 
         if (!empty($year)) {
             $query->where('year', (int) $year);
@@ -158,17 +148,17 @@ class Contribution extends Model
             ->selectRaw('MAX(status) as latest_unpaid_status')
             ->selectRaw('GROUP_CONCAT(DISTINCT deceased_id) as deceased_ids')
             ->selectRaw("GROUP_CONCAT(DISTINCT remarks SEPARATOR '; ') as remarks")
-            ->with(['payer.name'])
+            ->with('payer.name')
             ->groupBy('payer_memberID');
 
-        // Only apply HAVING if filter status is set
         if (!is_null($status) && $status !== '') {
-            if ((int)$status === 0) {
+            if ((int) $status === 0) {
                 $query->having('unpaid_count', '>', 0);
             } else {
                 $query->having('unpaid_count', '=', 0);
             }
         }
+        //  dd($filters);
 
         return $query;
     }

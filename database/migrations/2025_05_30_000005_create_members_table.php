@@ -22,8 +22,13 @@ return new class extends Migration
 
             $table->date('membership_date');
             $table->tinyInteger('membership_status')->default(0)->nullable()->comment('0=active, 1=inactive, 2=deceased');
+
             $table->string('phone')->nullable();
             $table->string('image_photo')->nullable();
+            $table->enum('role', ['member', 'coordinator'])->default('member');
+            $table->unsignedBigInteger('coordinator_id')->nullable();
+            $table->foreign('coordinator_id')->references('memberID')->on('members')->onDelete('set null');
+
             $table->timestamps();
         });
     }

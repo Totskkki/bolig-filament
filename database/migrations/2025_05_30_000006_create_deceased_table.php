@@ -12,9 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('deceased', function (Blueprint $table) {
-            $table->bigInteger('deceasedID', true);
-            //  $table->bigInteger('member_id')->nullable()->index('fk_deceased_member')->index();
-
+            $table->bigIncrements('deceasedID', true);
             $table->unsignedBigInteger('member_id');
             $table->foreign('member_id')->references('memberID')->on('members')->cascadeOnDelete();
             $table->date('date_of_death');

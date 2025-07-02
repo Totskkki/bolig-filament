@@ -15,15 +15,22 @@ class Member extends Model
     protected $primaryKey = 'memberID';
 
     protected $fillable = [
-        // 'user_id',
         'names_id',
         'address_id',
         'membership_date',
         'membership_status',
         'phone',
         'image_photo',
+        'role',
+        'coordinator_id',
     ];
 
+
+
+    public function coordinator()
+    {
+        return $this->belongsTo(Member::class, 'coordinator_id');
+    }
 
     public function name()
     {
@@ -34,10 +41,10 @@ class Member extends Model
     {
         return $this->belongsTo(Address::class, 'address_id', 'addressid');
     }
-    public function contributions()
-    {
-        return $this->hasMany(Contribution::class, 'payer_memberID');
-    }
+    // public function contributions()
+    // {
+    //     return $this->hasMany(Contribution::class, 'payer_memberID');
+    // }
 
     public function isDeceased()
     {
@@ -50,7 +57,34 @@ class Member extends Model
     }
 
 
+    public function getFullNameAttribute(): string
+    {
+        return $this->name
+            ? "{$this->name->first_name} {$this->name->middle_name} {$this->name->last_name}"
+            : 'N/A';
+    }
 
+
+
+    // All members under this coordinator
+    public function assignedMembers()
+    {
+        return $this->hasMany(Member::class, 'coordinator_id');
+    }
+
+
+
+    public function unpaidContributions()
+    {
+        return $this->hasMany(\App\Models\Contribution::class, 'payer_memberID', 'memberID')
+            ->where('status', 0); // adjust if needed
+    }
+
+
+    public function contributions()
+    {
+        return $this->hasMany(Contribution::class, 'payer_memberID');
+    }
 
 
     protected static function booted()
@@ -69,5 +103,9 @@ class Member extends Model
             $member->name?->delete();
             $member->address?->delete();
         });
+    }
+    public function getRouteKeyName(): string
+    {
+        return 'memberID';
     }
 }

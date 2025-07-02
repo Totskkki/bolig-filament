@@ -12,12 +12,14 @@ class UniqueFullName implements ValidationRule
     protected ?string $middleName;
     protected ?int $excludeNamesId;
 
-    public function __construct(string $firstName, ?string $middleName = null, ?int $excludeNamesId = null)
+
+    public function __construct(?string $firstName = null, ?string $middleName = null, ?int $excludeNamesId = null)
     {
-        $this->firstName = $firstName;
+        $this->firstName = $firstName ?? '';
         $this->middleName = $middleName;
         $this->excludeNamesId = $excludeNamesId;
     }
+
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {

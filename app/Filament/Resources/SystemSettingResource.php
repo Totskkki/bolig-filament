@@ -3,41 +3,45 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SystemSettingResource\Pages;
-use App\Filament\Resources\SystemSettingResource\RelationManagers;
+
 use App\Models\SystemSetting;
-use Filament\Forms;
-use Filament\Forms\Components\Textarea;
+
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\RichEditor;
 
 class SystemSettingResource extends Resource
 {
     protected static ?string $model = SystemSetting::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
-    protected static ?string $navigationGroup = 'User';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationGroup = 'Settings';
+    protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                TextInput::make('key')
-                    //->disabled()
-                    ->required(),
+                Grid::make(1)
+                    ->schema([
+                        TextInput::make('key')
+                            ->required(),
 
-                TextInput::make('value')
-                    ->label('Value (e.g., ₱)')
-                    ->numeric()
-                    ->required(),
+                        TextInput::make('value')
+                            ->label('Value (e.g., ₱)')
+                            ->numeric()
+                            ->required(),
 
-                Textarea::make('description')
-                    ->rows(2)
+                        RichEditor::make('description')
+                            ->fileAttachmentsDisk('s3')
+                            ->fileAttachmentsDirectory('attachments'),
+
+                    ]),
             ]);
     }
 
@@ -49,14 +53,21 @@ class SystemSettingResource extends Resource
 
                 Tables\Columns\TextColumn::make('key'),
                 Tables\Columns\TextColumn::make('value')->label('Amount (₱)'),
-                Tables\Columns\TextColumn::make('description')->wrap()
+                Tables\Columns\TextColumn::make('description')
+                    ->label('Description')
+                    ->html() // Render HTML instead of plain text
+                    ->wrap(), // Optional: wraps long content
+
 
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->modalWidth('md')
+                    ->slideover(),
+                Tables\Actions\DeleteAction::make()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -76,8 +87,8 @@ class SystemSettingResource extends Resource
     {
         return [
             'index' => Pages\ListSystemSettings::route('/'),
-            'create' => Pages\CreateSystemSetting::route('/create'),
-            'edit' => Pages\EditSystemSetting::route('/{record}/edit'),
+            // 'create' => Pages\CreateSystemSetting::route('/create'),
+            // 'edit' => Pages\EditSystemSetting::route('/{record}/edit'),
         ];
     }
 }

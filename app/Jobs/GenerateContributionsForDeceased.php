@@ -11,6 +11,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+
 
 class GenerateContributionsForDeceased implements ShouldQueue
 {
@@ -33,7 +35,7 @@ class GenerateContributionsForDeceased implements ShouldQueue
             !$deceased->member ||
             !$deceased->member->name
         ) {
-            \Log::error('Missing related name for deceased ID: ' . $this->deceasedID);
+            Log::error('Missing related name for deceased ID: ' . $this->deceasedID);
             return;
         }
 
@@ -42,7 +44,7 @@ class GenerateContributionsForDeceased implements ShouldQueue
 
 
 
-        \Log::info('Deceased name:', [
+        Log::info('Deceased name:', [
             'deceasedID' => $this->deceasedID,
             'name' => $deceased?->member?->name
         ]);
@@ -51,7 +53,8 @@ class GenerateContributionsForDeceased implements ShouldQueue
         $baseAmount = SystemSetting::where('key', 'mortuary_contribution')->value('value') ?? 15;
 
         $now = now();
-        $month = $now->format('m');
+        //   $month = $now->format('m');
+        $month = (int) $now->format('m');
         $year = $now->format('Y');
 
         Member::where('membership_status', 0)
@@ -78,6 +81,6 @@ class GenerateContributionsForDeceased implements ShouldQueue
                 Contribution::insert($data);
             });
 
-        \Log::info('Contribution records generated for deceasedID: ' . $this->deceasedID);
+        Log::info('Contribution records generated for deceasedID: ' . $this->deceasedID);
     }
 }

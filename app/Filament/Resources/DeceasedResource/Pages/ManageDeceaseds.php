@@ -9,6 +9,7 @@ use App\Models\Contribution;
 use App\Models\Member;
 use App\Jobs\GenerateContributionsForDeceased;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 class ManageDeceaseds extends ManageRecords
 {
@@ -19,9 +20,11 @@ class ManageDeceaseds extends ManageRecords
     {
         return [
             Actions\CreateAction::make()
-
+                ->successNotification(null)
+                ->modalWidth('md')
                 ->after(function ($record) {
-                    \Log::info('Triggered once for deceasedID: ' . $record->deceasedID);
+                    Log::info('Triggered once for deceasedID: ' . $record->deceasedID);
+
 
 
                     $member = \App\Models\Member::find($record->member_id);

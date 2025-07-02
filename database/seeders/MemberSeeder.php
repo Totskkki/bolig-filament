@@ -2,23 +2,19 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Users\Name;
 use App\Models\Users\Address;
-use App\Models\User;
 use App\Models\Member;
-use Illuminate\Support\Str;
 
 class MemberSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        for ($i = 1; $i <= 10; $i++) {
-            // Create Name
+        // Step 1: Create 3 Coordinators first
+        $coordinators = collect();
+
+        for ($i = 0; $i < 3; $i++) {
             $name = Name::create([
                 'first_name' => fake()->firstName(),
                 'middle_name' => fake()->firstName(),
@@ -26,10 +22,9 @@ class MemberSeeder extends Seeder
                 'suffix' => fake()->optional()->suffix(),
                 'gender' => fake()->randomElement(['Male', 'Female', 'Others']),
                 'birthday' => fake()->date(),
-                'age' => fake()->numberBetween(18, 60),
+                'age' => fake()->numberBetween(30, 60),
             ]);
 
-            // Create Address
             $address = Address::create([
                 'street' => fake()->streetAddress(),
                 'city' => fake()->city(),
@@ -38,27 +33,48 @@ class MemberSeeder extends Seeder
                 'country' => 'Philippines',
             ]);
 
-            // Create User
-            //  $user = User::create([
-            // 'username' => null,
-            //'email' => null,
-            // 'password' => null, // or null if you want to skip
-            // 'role' => 'member',
-            // 'status' => 'active',
-            //'contact_number' => fake()->phoneNumber(),
-            //'photo' => null,
-            // 'name_id' => $name->namesid,
-            // 'address_id' => $address->addressid,
-            // ]);
-
-            // Create Member
-            Member::create([
-                // 'user_id' => $user->userid,
+            $coordinator = Member::create([
                 'names_id' => $name->namesid,
                 'address_id' => $address->addressid,
                 'membership_date' => now(),
-                'membership_status' => '0',
+                'membership_status' => 0,
                 'phone' => fake()->phoneNumber(),
+                'role' => 'coordinator',
+                'coordinator_id' => null, // A coordinator has no coordinator
+                'image_photo' => null,
+            ]);
+
+            $coordinators->push($coordinator);
+        }
+
+        // Step 2: Create 10 regular members and assign to a random coordinator
+        for ($i = 0; $i < 20; $i++) {
+            $name = Name::create([
+                'first_name' => fake()->firstName(),
+                'middle_name' => fake()->firstName(),
+                'last_name' => fake()->lastName(),
+                'suffix' => fake()->optional()->suffix(),
+                'gender' => fake()->randomElement(['Male', 'Female', 'Others']),
+                'birthday' => fake()->date(),
+                'age' => fake()->numberBetween(18, 40),
+            ]);
+
+            $address = Address::create([
+                'street' => fake()->streetAddress(),
+                'city' => fake()->city(),
+                'province' => fake()->state(),
+                'postal_code' => fake()->postcode(),
+                'country' => 'Philippines',
+            ]);
+
+            Member::create([
+                'names_id' => $name->namesid,
+                'address_id' => $address->addressid,
+                'membership_date' => now(),
+                'membership_status' => 0,
+                'phone' => fake()->phoneNumber(),
+                'role' => 'member',
+                'coordinator_id' => $coordinators->random()->memberID,
                 'image_photo' => null,
             ]);
         }

@@ -23,8 +23,15 @@ class EditMember extends EditRecord
     {
         return [
             // Actions\DeleteAction::make(),
+            Actions\Action::make('back')
+                ->label('Back')
+                ->icon('heroicon-o-arrow-left')
+                ->url($this->getResource()::getUrl('index'))
+                ->color('gray'),
+
         ];
     }
+
 
     public static function getEloquentQuery(): Builder
     {
@@ -62,8 +69,13 @@ class EditMember extends EditRecord
             'postal_code' => $address?->postal_code,
             'country' => $address?->country,
 
+
+            // Member related
             'status' => $this->record->membership_status,
             'membership_date' => $this->record->membership_date,
+            'role' => $this->record->role,
+            'coordinator_id' => $this->record->coordinator_id,
+
 
         ]);
     }
@@ -102,6 +114,8 @@ class EditMember extends EditRecord
             'image_photo' => $data['image_photo'],
             'membership_status' => $data['membership_status'],
             'membership_date' => $data['membership_date'],
+            'role' => $data['role'],
+            'coordinator_id' => $data['coordinator_id'] ?? null,
         ]);
         Notification::make()
             ->title('Member updated successfully')
