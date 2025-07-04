@@ -42,8 +42,9 @@ class MemberSeeder extends Seeder
                 'role' => 'coordinator',
                 'coordinator_id' => null, // A coordinator has no coordinator
                 'image_photo' => null,
+                'boligid' => '',
             ]);
-
+            $coordinator->update(['boligid' => 'BOLIG-' . str_pad($coordinator->memberID, 6, '0', STR_PAD_LEFT)]);
             $coordinators->push($coordinator);
         }
 
@@ -67,7 +68,7 @@ class MemberSeeder extends Seeder
                 'country' => 'Philippines',
             ]);
 
-            Member::create([
+            $member = Member::create([
                 'names_id' => $name->namesid,
                 'address_id' => $address->addressid,
                 'membership_date' => now(),
@@ -76,7 +77,9 @@ class MemberSeeder extends Seeder
                 'role' => 'member',
                 'coordinator_id' => $coordinators->random()->memberID,
                 'image_photo' => null,
+                'boligid' => '', // Temporary
             ]);
+            $member->update(['boligid' => 'BOLIG-' . str_pad($member->memberID, 6, '0', STR_PAD_LEFT)]);
         }
     }
 }

@@ -23,6 +23,7 @@ class Member extends Model
         'image_photo',
         'role',
         'coordinator_id',
+        'boligid',
     ];
 
 
@@ -89,23 +90,22 @@ class Member extends Model
 
     protected static function booted()
     {
-        // static::saved(function () {
-        //     Cache::forget('member_status_counts');
-        //     self::refreshStatusCountsCache();
-        // });
 
-        // static::deleted(function () {
-        //     Cache::forget('member_status_counts');
-        //     self::refreshStatusCountsCache();
-        // });
         static::deleting(function ($member) {
 
             $member->name?->delete();
             $member->address?->delete();
+        });
+        static::created(function ($member) {
+            $member->updateQuietly([
+                'boligid' => 'BOLIG-' . str_pad($member->memberID, 6, '0', STR_PAD_LEFT),
+            ]);
         });
     }
     public function getRouteKeyName(): string
     {
         return 'memberID';
     }
+    // In Member.php model
+
 }

@@ -42,54 +42,54 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
     #[Url(as: 'coordinator', keep: true)]
     public ?string $coordinator = null;
     public ?string $filterMonth = null;
-public bool $showPaid = false;
+    public bool $showPaid = false;
 
 
 
 
 
-   protected function getFormSchema(): array
-{
-    return [
-        Forms\Components\Grid::make(2)
-            ->schema([
-                Forms\Components\Select::make('coordinator')
-                    ->label('Select Coordinator')
-                    ->options(
-                        Member::with('name')
-                            ->where('role', 'coordinator')
-                            ->get()
-                            ->mapWithKeys(fn($c) => [$c->memberID => $c->full_name])
-                    )
-                    ->searchable()
-                    ->preload()
-                    ->live()
-                    ->afterStateUpdated(function ($state, callable $set) {
-                        $set('coordinator', $state);
-                    }),
+    protected function getFormSchema(): array
+    {
+        return [
+            Forms\Components\Grid::make(2)
+                ->schema([
+                    Forms\Components\Select::make('coordinator')
+                        ->label('Select Coordinator')
+                        ->options(
+                            Member::with('name')
+                                ->where('role', 'coordinator')
+                                ->get()
+                                ->mapWithKeys(fn($c) => [$c->memberID => $c->full_name])
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $set('coordinator', $state);
+                        }),
 
-                Forms\Components\Select::make('filterMonth')
-                    ->label('Filter by Month')
-                    ->options([
-                        '01' => 'January',
-                        '02' => 'February',
-                        '03' => 'March',
-                        '04' => 'April',
-                        '05' => 'May',
-                        '06' => 'June',
-                        '07' => 'July',
-                        '08' => 'August',
-                        '09' => 'September',
-                        '10' => 'October',
-                        '11' => 'November',
-                        '12' => 'December',
-                    ])
-                    ->placeholder('All Months')
-                    ->live(debounce: 500)
-                    ->afterStateUpdated(fn($state) => $this->filterMonth = $state),
-            ]),
-    ];
-}
+                    Forms\Components\Select::make('filterMonth')
+                        ->label('Filter by Month')
+                        ->options([
+                            '01' => 'January',
+                            '02' => 'February',
+                            '03' => 'March',
+                            '04' => 'April',
+                            '05' => 'May',
+                            '06' => 'June',
+                            '07' => 'July',
+                            '08' => 'August',
+                            '09' => 'September',
+                            '10' => 'October',
+                            '11' => 'November',
+                            '12' => 'December',
+                        ])
+                        ->placeholder('All Months')
+                        ->live(debounce: 500)
+                        ->afterStateUpdated(fn($state) => $this->filterMonth = $state),
+                ]),
+        ];
+    }
 
 
 
@@ -122,27 +122,27 @@ public bool $showPaid = false;
     // }
 
     protected function getTableQuery()
-{
-    if (!$this->coordinator) {
-        return Member::whereRaw('0 = 1');
+    {
+        if (!$this->coordinator) {
+            return Member::whereRaw('0 = 1');
+        }
+
+        return Member::where('coordinator_id', $this->coordinator)
+            ->whereHas('contributions', function ($query) {
+                // $query->where('status', $this->showPaid ? 1 : 0);
+
+                if ($this->filterMonth) {
+                    $query->where('month', $this->filterMonth);
+                }
+            })
+            ->withSum(['contributions as contributions_sum_amount' => function ($query) {
+                //$query->where('status', $this->showPaid ? 1 : 0);
+
+                if ($this->filterMonth) {
+                    $query->where('month', $this->filterMonth);
+                }
+            }], 'amount');
     }
-
-    return Member::where('coordinator_id', $this->coordinator)
-        ->whereHas('contributions', function ($query) {
-           // $query->where('status', $this->showPaid ? 1 : 0);
-
-            if ($this->filterMonth) {
-                $query->where('month', $this->filterMonth);
-            }
-        })
-        ->withSum(['contributions as contributions_sum_amount' => function ($query) {
-            //$query->where('status', $this->showPaid ? 1 : 0);
-
-            if ($this->filterMonth) {
-                $query->where('month', $this->filterMonth);
-            }
-        }], 'amount');
-}
 
 
 
@@ -168,15 +168,15 @@ public bool $showPaid = false;
         ];
     }
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Action::make('back')
-                ->label('Back to Dashboard')
-                ->url(route('filament.admin.pages.dashboard'))
-                ->color('gray'),
-        ];
-    }
+    // protected function getHeaderActions(): array
+    // {
+    //     return [
+    //         Action::make('back')
+    //             ->label('Back to Dashboard')
+    //             ->url(route('filament.admin.pages.dashboard'))
+    //             ->color('gray'),
+    //     ];
+    // }
 
     public function updatedCoordinator()
     {

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('members', function (Blueprint $table) {
             $table->bigIncrements('memberID');
+            $table->string('boligid')->nullable()->unique();
 
             $table->unsignedBigInteger('names_id');
             $table->foreign('names_id')->references('namesid')->on('names')->cascadeOnDelete();
