@@ -11,7 +11,6 @@ class MemberSeeder extends Seeder
 {
     public function run(): void
     {
-        // Step 1: Create 3 Coordinators first
         $coordinators = collect();
 
         for ($i = 0; $i < 3; $i++) {
@@ -28,9 +27,17 @@ class MemberSeeder extends Seeder
             $address = Address::create([
                 'street' => fake()->streetAddress(),
                 'city' => fake()->city(),
+                'barangay' => fake()->randomElement([
+                    'Poblacion',
+                    'San Jose',
+                    'San Isidro',
+                    'Barangay Uno',
+                    'Zone 2',
+                ]),
+
                 'province' => fake()->state(),
                 'postal_code' => fake()->postcode(),
-                'country' => 'Philippines',
+                'region' => '11',
             ]);
 
             $coordinator = Member::create([
@@ -40,16 +47,19 @@ class MemberSeeder extends Seeder
                 'membership_status' => 0,
                 'phone' => fake()->phoneNumber(),
                 'role' => 'coordinator',
-                'coordinator_id' => null, // A coordinator has no coordinator
+                'coordinator_id' => null,
                 'image_photo' => null,
-                'boligid' => '',
+                'boligid' => '', // will update below
             ]);
-            $coordinator->update(['boligid' => 'BOLIG-' . str_pad($coordinator->memberID, 6, '0', STR_PAD_LEFT)]);
-            $coordinators->push($coordinator);
+
+            $sequence = $this->getNextProvinceSequence($address->region);
+            $boligid = $this->generateBoligId($address->region, $sequence, 'coordinator');
+
+        $coordinator->update(['boligid' => $boligid]);
+        $coordinators->push($coordinator);
         }
 
-        // Step 2: Create 10 regular members and assign to a random coordinator
-        for ($i = 0; $i < 15; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $name = Name::create([
                 'first_name' => fake()->firstName(),
                 'middle_name' => fake()->firstName(),
@@ -63,9 +73,17 @@ class MemberSeeder extends Seeder
             $address = Address::create([
                 'street' => fake()->streetAddress(),
                 'city' => fake()->city(),
+                'barangay' => fake()->randomElement([
+                    'Poblacion',
+                    'San Jose',
+                    'San Isidro',
+                    'Barangay Uno',
+                    'Zone 2',
+                ]),
+
                 'province' => fake()->state(),
                 'postal_code' => fake()->postcode(),
-                'country' => 'Philippines',
+                'region' => 'Region VI',
             ]);
 
             $member = Member::create([
@@ -77,9 +95,38 @@ class MemberSeeder extends Seeder
                 'role' => 'member',
                 'coordinator_id' => $coordinators->random()->memberID,
                 'image_photo' => null,
-                'boligid' => '', // Temporary
+                'boligid' => '',
             ]);
-            $member->update(['boligid' => 'BOLIG-' . str_pad($member->memberID, 6, '0', STR_PAD_LEFT)]);
+
+            $sequence = $this->getNextProvinceSequence($address->region);
+        $boligid = $this->generateBoligId($address->region, $sequence, 'member');
+
+        $member->update(['boligid' => $boligid]);
         }
     }
+
+    // private function generateUniqueBoligId(): string
+    // {
+    //     do {
+    //         $random = 'BOLIG-' . mt_rand(1000000000, 9999999999); // 10-digit number
+    //     } while (Member::where('boligid', $random)->exists());
+
+    //     return $random;
+    // }
+
+    private function generateBoligId(string $regionCode, int $sequence, string $type): string
+{
+    $suffix = $type === 'coordinator' ? '01' : '02';
+    $middle = str_pad($sequence, 8, '0', STR_PAD_LEFT);
+    return "{$regionCode}-{$middle}-{$suffix}";
+}
+
+private function getNextProvinceSequence(string $regionCode): int
+{
+    // Count how many members already exist for that province
+    return Member::whereHas('address', function ($q) use ($regionCode) {
+        $q->where('region', $regionCode);
+    })->count() + 1;
+}
+
 }

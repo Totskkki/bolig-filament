@@ -74,9 +74,10 @@ class CreateMember extends CreateRecord
         $address = Address::create([
             'street'      => $data['street'],
             'city'        => $data['city'],
+            'barangay'        => $data['barangay'],
             'province'    => $data['province'],
             'postal_code' => $data['postal_code'],
-            'country'     => $data['country'],
+            'region'     => $data['region'],
         ]);
 
 

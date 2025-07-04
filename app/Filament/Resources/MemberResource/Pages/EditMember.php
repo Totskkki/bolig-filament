@@ -65,9 +65,10 @@ class EditMember extends EditRecord
             // Address related
             'street' => $address?->street,
             'city' => $address?->city,
+            'barangay' => $address?->barangay,
             'province' => $address?->province,
             'postal_code' => $address?->postal_code,
-            'country' => $address?->country,
+            'region' => $address?->region,
 
 
             // Member related
@@ -103,9 +104,10 @@ class EditMember extends EditRecord
         $address->update([
             'street' => $data['street'],
             'city' => $data['city'],
+            'barangay' => $data['barangay'],
             'province' => $data['province'],
             'postal_code' => $data['postal_code'],
-            'country' => $data['country'],
+            'region' => $data['region'],
         ]);
 
         // Update member data if needed

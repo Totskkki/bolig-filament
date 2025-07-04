@@ -249,11 +249,11 @@ class MemberResource extends Resource
                     ->columns(2)
                     ->collapsible()
                     ->schema([
-                        Select::make('country')
-                            ->label('Country')
+                        Select::make('region')
+                            ->label('Region')
                             ->options(
-                                collect(json_decode(file_get_contents(storage_path('app/locations/countries.json')), true))
-                                    ->mapWithKeys(fn($item) => [$item['id'] => $item['name']])
+                                collect(json_decode(file_get_contents(storage_path('app/locations/region.json')), true))
+                                    ->mapWithKeys(fn($item) => [$item['region_code'] => $item['region_name']])
                                     ->toArray()
                             )
                             ->searchable()
@@ -264,27 +264,47 @@ class MemberResource extends Resource
                         Select::make('province')
                             ->label('Province')
                             ->options(function (callable $get) {
-                                $states = json_decode(file_get_contents(storage_path('app/locations/states.json')), true);
+                                $provinces = json_decode(file_get_contents(storage_path('app/locations/province.json')), true);
 
-                                return collect($states)
-                                    ->where('country_id', $get('country'))
-                                    ->mapWithKeys(fn($state) => [$state['id'] => $state['name']])
+                                return collect($provinces)
+                                    ->where('region_code', $get('region'))
+                                    ->mapWithKeys(fn($province) => [
+                                        $province['province_code'] => $province['province_name']
+                                    ])
                                     ->toArray();
                             })
                             ->reactive()
                             ->required(),
 
 
+
                         Select::make('city')
                             ->label('City')
                             ->options(function (callable $get) {
-                                $cities = json_decode(file_get_contents(storage_path('app/locations/cities.json')), true);
+                                $cities = json_decode(file_get_contents(storage_path('app/locations/city.json')), true);
 
                                 return collect($cities)
-                                    ->where('state_id', $get('province'))
-                                    ->mapWithKeys(fn($city) => [$city['id'] => $city['name']])
+                                    ->where('province_code', $get('province'))
+                                    ->mapWithKeys(fn($city) => [$city['city_code'] => $city['city_name']])
                                     ->toArray();
                             })
+                            ->reactive()
+                            ->required(),
+
+
+                        Select::make('barangay')
+                            ->label('Barangay')
+                            ->options(function (callable $get) {
+                                $barangays = json_decode(file_get_contents(storage_path('app/locations/barangay.json')), true);
+
+                                return collect($barangays)
+                                    ->where('city_code', $get('city'))
+                                    ->mapWithKeys(fn($brgy) => [$brgy['brgy_code'] => $brgy['brgy_name']])
+                                    ->toArray();
+                            })
+                            ->reactive()
+
+
                             ->required(),
                         Textarea::make('street')
                             ->label('Street Address')
@@ -361,10 +381,11 @@ class MemberResource extends Resource
 
 
                 TextColumn::make('address.full_address')
-                    ->label('Address')
-                    ->sortable(['province', 'city'])
-                    ->searchable(['province', 'city'])
-                    ->wrap(),
+                ->label('Address')
+                ->sortable()
+                ->searchable()
+                ->wrap(),
+
 
                 ImageColumn::make('image_photo')
 
@@ -378,7 +399,15 @@ class MemberResource extends Resource
                     ->date()
                     ->label('Member Since'),
 
-                TextColumn::make('membership_status')
+
+
+                TextColumn::make('coordinator.name.full_name')
+                    ->label('Coordinator')
+                    ->badge()
+                    // ->searchable()
+                    ->color('gray')
+                    ->getStateUsing(fn($record) => optional($record->coordinator?->name)->full_name ?? '—'),
+                       TextColumn::make('membership_status')
                     ->badge()
 
                     ->label('Status')
@@ -387,7 +416,7 @@ class MemberResource extends Resource
                         'danger' => 'inactive',
                         'secondary' => 'deceased',
                     ]),
-                TextColumn::make('membership_status')
+                    TextColumn::make('membership_status')
                     ->label('Status')
                     ->badge()
                     ->colors([
@@ -401,12 +430,6 @@ class MemberResource extends Resource
                         2 => 'Deceased',
                         default => 'Unknown',
                     }),
-                TextColumn::make('coordinator.name.full_name')
-                    ->label('Coordinator')
-                    ->badge()
-                    // ->searchable()
-                    ->color('gray')
-                    ->getStateUsing(fn($record) => optional($record->coordinator?->name)->full_name ?? '—')
 
             ])
             ->filters([

@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
             AddressSeeder::class,
             UserSeeder::class,
             MemberSeeder::class,
-            LocationSeeder::class,
+           // LocationSeeder::class,
 
         ]);
         SystemSetting::firstOrCreate(

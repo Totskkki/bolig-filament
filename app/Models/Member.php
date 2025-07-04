@@ -88,20 +88,58 @@ class Member extends Model
     }
 
 
-    protected static function booted()
-    {
+//     protected static function booted()
+// {
+//     static::deleting(function ($member) {
+//         $member->name?->delete();
+//         $member->address?->delete();
+//     });
 
-        static::deleting(function ($member) {
+//     static::created(function ($member) {
 
-            $member->name?->delete();
-            $member->address?->delete();
-        });
-        static::created(function ($member) {
-            $member->updateQuietly([
-                'boligid' => 'BOLIG-' . str_pad($member->memberID, 6, '0', STR_PAD_LEFT),
-            ]);
-        });
-    }
+//         do {
+//             $uid = 'BOLIG-' . mt_rand(1000000000, 9999999999);
+//         } while (self::where('boligid', $uid)->exists());
+
+//         $member->updateQuietly([
+//             'boligid' => $uid,
+//         ]);
+//     });
+// }
+protected static function booted()
+{
+    static::deleting(function ($member) {
+        $member->name?->delete();
+        $member->address?->delete();
+    });
+
+    static::created(function ($member) {
+        $member->load('address');
+
+        if (!$member->address || !$member->address->region) {
+            return;
+        }
+
+        $region = $member->address->region; // should be just the number (e.g., '6')
+        $suffix = $member->role === 'coordinator' ? '01' : '02';
+
+        $sequence = Member::whereHas('address', function ($query) use ($region) {
+            $query->where('region', $region);
+        })
+        ->where('role', $member->role)
+        ->count();
+
+        $sequenceNumber = str_pad($sequence + 1, 8, '0', STR_PAD_LEFT);
+
+        $boligid = "{$region}-{$sequenceNumber}-{$suffix}";
+
+        $member->updateQuietly([
+            'boligid' => $boligid,
+        ]);
+    });
+}
+
+
     public function getRouteKeyName(): string
     {
         return 'memberID';

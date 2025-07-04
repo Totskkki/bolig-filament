@@ -14,22 +14,14 @@ class Address extends Model
 
     protected $table = 'addresses';
     protected $primaryKey = 'addressid';
-    // protected static $countryList;
-    // protected static $provinceList;
-    // protected static $cityList;
-
-    // protected static $countryMap = null;
-    // protected static $provinceMap = null;
-    // protected static $cityMap = null;
 
     protected $fillable = [
         'street',
+        'barangay',
         'city',
         'province',
-        'country',
+        'region',
         'postal_code',
-        'country',
-
     ];
 
     public function users()
@@ -37,23 +29,32 @@ class Address extends Model
         return $this->hasMany(User::class, 'address_id', 'addressid');
     }
 
-    public function getCityNameAttribute(): string
-    {
-        return DB::table('cities')->where('id', $this->city)->value('name') ?? 'Unknown City';
-    }
-
     public function getProvinceNameAttribute(): string
     {
-        return DB::table('provinces')->where('id', $this->province)->value('name') ?? 'Unknown Province';
+        $provinces = collect(json_decode(file_get_contents(storage_path('app/locations/province.json')), true));
+        return $provinces->firstWhere('province_code', $this->province)['province_name'] ?? 'Unknown Province';
     }
 
-    public function getCountryNameAttribute(): string
+    public function getCityNameAttribute(): string
     {
-        return DB::table('countries')->where('id', $this->country)->value('name') ?? 'Unknown Country';
+        $cities = collect(json_decode(file_get_contents(storage_path('app/locations/city.json')), true));
+        return $cities->firstWhere('city_code', $this->city)['city_name'] ?? 'Unknown City';
+    }
+
+    public function getBarangayNameAttribute(): string
+    {
+        $barangays = collect(json_decode(file_get_contents(storage_path('app/locations/barangay.json')), true));
+        return $barangays->firstWhere('brgy_code', $this->barangay)['brgy_name'] ?? 'Unknown Barangay';
+    }
+
+    public function getRegionNameAttribute(): string
+    {
+        $regions = collect(json_decode(file_get_contents(storage_path('app/locations/region.json')), true));
+        return $regions->firstWhere('region_code', $this->region)['region_name'] ?? 'Unknown Region';
     }
 
     public function getFullAddressAttribute(): string
     {
-        return "{$this->street}, {$this->city_name}, {$this->province_name}, {$this->country_name}";
+        return "{$this->street}, {$this->barangay_name}, {$this->city_name}, {$this->province_name}, {$this->region_name}";
     }
 }
