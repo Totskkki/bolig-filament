@@ -26,6 +26,7 @@ class Contribution extends Model
         'month',
         'year',
         'remarks',
+        'coordinator_id',
     ];
 
     public function coordinator()

@@ -48,7 +48,7 @@ class MemberSeeder extends Seeder
         }
 
         // Step 2: Create 10 regular members and assign to a random coordinator
-        for ($i = 0; $i < 20; $i++) {
+        for ($i = 0; $i < 15; $i++) {
             $name = Name::create([
                 'first_name' => fake()->firstName(),
                 'middle_name' => fake()->firstName(),

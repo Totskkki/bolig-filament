@@ -3,8 +3,14 @@
 namespace Database\Seeders;
 
 use App\Models\Member;
-use App\Models\User;
+use App\Models\SystemSetting;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\User;
+use Database\Seeders\AddressSeeder;
+use Database\Seeders\LocationSeeder;
+use Database\Seeders\MemberSeeder;
+use Database\Seeders\NameSeeder;
+use Database\Seeders\UserSeeder;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -23,10 +29,16 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
 
         ]);
-        \App\Models\SystemSetting::firstOrCreate(
+        SystemSetting::firstOrCreate(
             ['key' => 'mortuary_contribution'],
             ['value' => '15', 'description' => 'Per member contribution']
         );
-
+       SystemSetting::firstOrCreate(
+            ['key' => 'coordinator_share_percentage'],
+            [
+                'value' => 12,
+                'description' => 'Coordinator share percentage per payment (e.g., 12%)',
+            ]
+        );
     }
 }

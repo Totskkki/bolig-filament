@@ -23,27 +23,30 @@ class SystemSettingResource extends Resource
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 5;
 
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Grid::make(1)
-                    ->schema([
-                        TextInput::make('key')
-                            ->required(),
+  public static function form(Form $form): Form
+{
+    return $form
+        ->schema([
+            Grid::make(1)->schema([
+                TextInput::make('key')
+                    ->required()
+                    ->disabled(fn($record) => $record !== null),
 
-                        TextInput::make('value')
-                            ->label('Value (e.g., ₱)')
-                            ->numeric()
-                            ->required(),
+                TextInput::make('value')
+                    ->numeric()
+                    ->label(fn ($get) => match ($get('key')) {
+                        'coordinator_share_percentage' => 'Share Percentage (%)',
+                        'mortuary_contribution' => 'Contribution Amount (₱)',
+                        default => 'Value',
+                    })
+                    ->required(),
 
-                        RichEditor::make('description')
-                            ->fileAttachmentsDisk('s3')
-                            ->fileAttachmentsDirectory('attachments'),
+                RichEditor::make('description')
+                    ->nullable(),
+            ]),
+        ]);
+}
 
-                    ]),
-            ]);
-    }
 
     public static function table(Table $table): Table
     {
@@ -52,7 +55,15 @@ class SystemSettingResource extends Resource
 
 
                 Tables\Columns\TextColumn::make('key'),
-                Tables\Columns\TextColumn::make('value')->label('Amount (₱)'),
+                Tables\Columns\TextColumn::make('value')
+    ->label('Amount')
+    ->formatStateUsing(function ($state, $record) {
+        return match ($record->key) {
+            'coordinator_share_percentage' => $state . '%',
+            default => '₱' . number_format($state, 2),
+        };
+    }),
+
                 Tables\Columns\TextColumn::make('description')
                     ->label('Description')
                     ->html() // Render HTML instead of plain text
