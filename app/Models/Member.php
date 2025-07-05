@@ -88,56 +88,89 @@ class Member extends Model
     }
 
 
-//     protected static function booted()
-// {
-//     static::deleting(function ($member) {
-//         $member->name?->delete();
-//         $member->address?->delete();
-//     });
+    //     protected static function booted()
+    // {
+    //     static::deleting(function ($member) {
+    //         $member->name?->delete();
+    //         $member->address?->delete();
+    //     });
 
-//     static::created(function ($member) {
+    //     static::created(function ($member) {
 
-//         do {
-//             $uid = 'BOLIG-' . mt_rand(1000000000, 9999999999);
-//         } while (self::where('boligid', $uid)->exists());
+    //         do {
+    //             $uid = 'BOLIG-' . mt_rand(1000000000, 9999999999);
+    //         } while (self::where('boligid', $uid)->exists());
 
-//         $member->updateQuietly([
-//             'boligid' => $uid,
-//         ]);
-//     });
-// }
-protected static function booted()
-{
-    static::deleting(function ($member) {
-        $member->name?->delete();
-        $member->address?->delete();
-    });
+    //         $member->updateQuietly([
+    //             'boligid' => $uid,
+    //         ]);
+    //     });
+    // }
 
-    static::created(function ($member) {
-        $member->load('address');
+    // protected static function booted()
+    // {
+    //     static::deleting(function ($member) {
+    //         $member->name?->delete();
+    //         $member->address?->delete();
+    //     });
 
-        if (!$member->address || !$member->address->region) {
-            return;
-        }
+    //     static::created(function ($member) {
+    //         $member->load('address');
 
-        $region = $member->address->region; // should be just the number (e.g., '6')
-        $suffix = $member->role === 'coordinator' ? '01' : '02';
+    //         if (!$member->address || !$member->address->region) {
+    //             return;
+    //         }
 
-        $sequence = Member::whereHas('address', function ($query) use ($region) {
-            $query->where('region', $region);
-        })
-        ->where('role', $member->role)
-        ->count();
+    //         $region = $member->address->region; // should be just the number (e.g., '6')
+    //         $suffix = $member->role === 'coordinator' ? '01' : '02';
 
-        $sequenceNumber = str_pad($sequence + 1, 8, '0', STR_PAD_LEFT);
+    //         $sequence = Member::whereHas('address', function ($query) use ($region) {
+    //             $query->where('region', $region);
+    //         })
+    //             ->where('role', $member->role)
+    //             ->count();
 
-        $boligid = "{$region}-{$sequenceNumber}-{$suffix}";
+    //         $sequenceNumber = str_pad($sequence + 1, 8, '0', STR_PAD_LEFT);
 
-        $member->updateQuietly([
-            'boligid' => $boligid,
-        ]);
-    });
-}
+    //         $boligid = "{$region}-{$sequenceNumber}-{$suffix}";
+
+    //         $member->updateQuietly([
+    //             'boligid' => $boligid,
+    //         ]);
+    //     });
+    // }
+
+    protected static function booted()
+    {
+        static::deleting(function ($member) {
+            $member->name?->delete();
+            $member->address?->delete();
+        });
+
+        static::created(function ($member) {
+            $member->load('address');
+
+            if (!$member->address || !$member->address->region) {
+                return;
+            }
+
+            $region = $member->address->region; // numeric region
+            $suffix = $member->role === 'coordinator' ? '01' : '02';
+
+            do {
+                // Generate random 8-digit number
+                $randomNumber = str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
+                $boligid = "{$region}-{$randomNumber}-{$suffix}";
+
+                // Check for uniqueness within the same region and role
+                $exists = Member::where('boligid', $boligid)->exists();
+            } while ($exists);
+
+            $member->updateQuietly([
+                'boligid' => $boligid,
+            ]);
+        });
+    }
 
 
     public function getRouteKeyName(): string

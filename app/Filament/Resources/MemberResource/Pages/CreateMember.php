@@ -90,7 +90,7 @@ class CreateMember extends CreateRecord
             'phone' => $data['phone'],
             'image_photo' => $data['image_photo'],
             'role' => $data['role'],
-            'coordinator_id' => $data['coordinator_id'],
+            'coordinator_id' => $data['coordinator_id'] ?? null,
         ];
     }
 }

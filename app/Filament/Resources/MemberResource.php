@@ -53,6 +53,8 @@ class MemberResource extends Resource
 
 
 
+
+
     public static function getNavigationLabel(): string
     {
         return 'Members';
@@ -62,7 +64,7 @@ class MemberResource extends Resource
 
     // public static function getNavigationIcon(): string | Htmlable | null
     // {
-    //     return new HtmlString(view('icons.users')->render());
+    //     return new HtmlString(view('icons.fa-users')->render());
     // }
 
 
@@ -357,39 +359,78 @@ class MemberResource extends Resource
 
             )
             ->columns([
-                TextColumn::make('name.full_name')
-                    ->label('Name')
-                    ->sortable(['last_name', 'first_name', 'middle_name'])
+                TextColumn::make('boligid')
+                    ->label('#')
+                    ->sortable()
+                    ->searchable(),
 
+                TextColumn::make('profile')
+                    ->label('Profile')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $name = optional($record->name)?->last_name . ', ' .
+                            optional($record->name)?->first_name . ' ' .
+                            optional($record->name)?->middle_name;
+
+                        $address = optional($record->address)?->full_address;
+                        $formattedAddress = str_replace(', ', '<br>', $address);
+
+                        $phone = $record->phone;
+
+                        return "
+                        <div class='space-y-1 max-w-[250px] overflow-hidden text-ellipsis'>
+                            <div class='truncate'>
+                                <span class='font-semibold text-primary'>
+                                    <i class='mr-1 fas fa-user'></i> 👤 {$name}
+                                </span>
+                            </div>
+                            <div class='text-sm text-gray-600'>
+                                <i class='mr-1 fas fa-map-marker-alt'></i>
+                                <span class='inline-block bg-gray-100 text-gray-800 px-2 py-0.5 rounded'>
+                                  📍  {$formattedAddress}
+                                </span>
+                            </div>
+                            <div class='text-sm text-gray-600 truncate'> 📞
+                                <i class='mr-1 fas fa-phone'></i>
+                                <span class='inline-block bg-green-100 text-green-800 px-2 py-0.5 rounded'>
+                                    {$phone}
+                                </span>
+                            </div>
+                        </div>
+                    ";
+                    })
                     ->searchable(
                         query: function ($query, string $search) {
                             $query->whereHas('name', function ($q) use ($search) {
                                 $q->where('first_name', 'like', "%{$search}%")
                                     ->orWhere('last_name', 'like', "%{$search}%")
                                     ->orWhere('middle_name', 'like', "%{$search}%");
-                            });
+                            })
+                                ->orWhere('phone', 'like', "%{$search}%")
+                                ->orWhereHas('address', function ($q) use ($search) {
+                                    $q->where('street', 'like', "%{$search}%")
+                                        ->orWhere('barangay', 'like', "%{$search}%")
+                                        ->orWhere('city', 'like', "%{$search}%")
+                                        ->orWhere('province', 'like', "%{$search}%")
+                                        ->orWhere('region', 'like', "%{$search}%");
+                                });
                         }
-                    )
-                    ->getStateUsing(function ($record) {
-                        return optional($record->name)->last_name . ', ' . optional($record->name)->first_name
-                            . '  ' . optional($record->name)->middle_name;
-                    }),
-
-                TextColumn::make('phone')
-                    ->label('Contact Number')
-                    ->searchable(),
+                    ),
 
 
-                TextColumn::make('address.full_address')
-                ->label('Address')
-                ->sortable()
-                ->searchable()
-                ->wrap(),
+
+
+
+                // TextColumn::make('address.full_address')
+                //     ->label('Address')
+                //     ->sortable()
+                //     ->searchable()
+                //     ->wrap(),
 
 
                 ImageColumn::make('image_photo')
 
-                    ->label('Image')
+                    ->label('Photo')
                     ->disk('public')
                     ->circular()
                     ->size(50),
@@ -407,7 +448,7 @@ class MemberResource extends Resource
                     // ->searchable()
                     ->color('gray')
                     ->getStateUsing(fn($record) => optional($record->coordinator?->name)->full_name ?? '—'),
-                       TextColumn::make('membership_status')
+                TextColumn::make('membership_status')
                     ->badge()
 
                     ->label('Status')
@@ -416,7 +457,7 @@ class MemberResource extends Resource
                         'danger' => 'inactive',
                         'secondary' => 'deceased',
                     ]),
-                    TextColumn::make('membership_status')
+                TextColumn::make('membership_status')
                     ->label('Status')
                     ->badge()
                     ->colors([

@@ -25,11 +25,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
 
+        // FilamentIcon::register([
+        //     'panels::sidebar.group.collapse-button' => view('icons.chevron-up'),
+        //     'users-icon' => view('icons.users'),
+        //     'dashboard-icon' => view('icons.dashboard'),
+        //     //'settings-icon' => view('icons.settings'),
+        // ]);
         FilamentIcon::register([
+            'panels::topbar.global-search.field' => 'fas-magnifying-glass',
             'panels::sidebar.group.collapse-button' => view('icons.chevron-up'),
-            'users-icon' => view('icons.users'),
-            'dashboard-icon' => view('icons.dashboard'),
-            //'settings-icon' => view('icons.settings'),
+            'resources.pages.members.navigation-item.icon' => '<i class="text-blue-600 fas fa-users"></i>',
         ]);
 
         TextInput::configureUsing(fn(TextInput $textInput) => $textInput->inlineLabel());
