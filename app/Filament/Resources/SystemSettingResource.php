@@ -14,14 +14,27 @@ use Filament\Tables\Table;
 
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\RichEditor;
-
+use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rule;
+use Illuminate\Contracts\Support\Htmlable;
 class SystemSettingResource extends Resource
 {
     protected static ?string $model = SystemSetting::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+    //protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 5;
+
+
+
+
+
+
+      public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.settings-icon')->render());
+    }
+
 
   public static function form(Form $form): Form
 {

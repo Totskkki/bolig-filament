@@ -9,12 +9,14 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Forms\Components\DatePicker;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 
 class ContributionReport extends Page implements HasForms
 {
     use \Filament\Forms\Concerns\InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document';
     protected static string $view = 'filament.pages.contribution-report';
     protected static ?string $navigationGroup = 'Reports';
     protected static ?string $title = 'Contribution Report';
@@ -22,6 +24,20 @@ class ContributionReport extends Page implements HasForms
 
     public ?string $fromDate = null;
     public ?string $toDate = null;
+
+
+
+
+    public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.reports-icon')->render());
+    }
+
+
+
+
+
+
     protected function getFormSchema(): array
     {
         return [

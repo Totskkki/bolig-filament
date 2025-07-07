@@ -59,7 +59,7 @@ class MemberSeeder extends Seeder
         $coordinators->push($coordinator);
         }
 
-        for ($i = 0; $i < 50; $i++) {
+        for ($i = 0; $i < 10; $i++) {
             $name = Name::create([
                 'first_name' => fake()->firstName(),
                 'middle_name' => fake()->firstName(),
@@ -83,7 +83,7 @@ class MemberSeeder extends Seeder
 
                 'province' => fake()->state(),
                 'postal_code' => fake()->postcode(),
-                'region' => 'Region VI',
+                'region' => '12',
             ]);
 
             $member = Member::create([
@@ -105,21 +105,24 @@ class MemberSeeder extends Seeder
         }
     }
 
-    // private function generateUniqueBoligId(): string
-    // {
-    //     do {
-    //         $random = 'BOLIG-' . mt_rand(1000000000, 9999999999); // 10-digit number
-    //     } while (Member::where('boligid', $random)->exists());
 
-    //     return $random;
-    // }
 
-    private function generateBoligId(string $regionCode, int $sequence, string $type): string
+  private function generateBoligId(string $regionCode, string $type): string
 {
     $suffix = $type === 'coordinator' ? '01' : '02';
-    $middle = str_pad($sequence, 8, '0', STR_PAD_LEFT);
-    return "{$regionCode}-{$middle}-{$suffix}";
+
+    do {
+        // Generate random 8-digit number
+        $randomNumber = str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
+        $boligid = "{$regionCode}-{$randomNumber}-{$suffix}";
+
+        // Check uniqueness
+        $exists = Member::where('boligid', $boligid)->exists();
+    } while ($exists);
+
+    return $boligid;
 }
+
 
 private function getNextProvinceSequence(string $regionCode): int
 {

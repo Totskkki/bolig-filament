@@ -7,7 +7,11 @@ use Filament\Forms\Components\TextInput;
 use Filament\Support\Facades\FilamentIcon;
 use Filament\Tables\Actions\Action;
 use Illuminate\Support\ServiceProvider;
-use Filament\Support\Facades\FilamentColor;
+use Illuminate\Support\HtmlString;
+use Filament\Support\Icons\IconSet;
+
+
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,10 +36,18 @@ class AppServiceProvider extends ServiceProvider
         //     //'settings-icon' => view('icons.settings'),
         // ]);
         FilamentIcon::register([
-            'panels::topbar.global-search.field' => 'fas-magnifying-glass',
-            'panels::sidebar.group.collapse-button' => view('icons.chevron-up'),
-            'resources.pages.members.navigation-item.icon' => '<i class="text-blue-600 fas fa-users"></i>',
+            // 'panels::topbar.global-search.field' => 'fas-magnifying-glass',
+            // 'panels::sidebar.group.collapse-button' => view('icons.chevron-up'),
+            // 'resources.pages.members.navigation-item.icon' => '<i class="text-blue-600 fas fa-users"></i>',
+            'panels::sidebar.collapse-button' => view('components.icons.custom-chevron'),
+            'panels::sidebar.group.collapse-button' => view('components.icons.custom-chevron'),
+            'resources.pages.MemberResource.navigation-item.icon' => view('components.icons.nav-dashboard'),
+            'deceased-icon' => view('components.icons.deceased-icon'),
+            'member-icon' => view('components.icons.member-icon'),
+
+
         ]);
+
 
         TextInput::configureUsing(fn(TextInput $textInput) => $textInput->inlineLabel());
         Radio::configureUsing(fn(Radio $radio) => $radio->inlineLabel());

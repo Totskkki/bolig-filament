@@ -9,6 +9,10 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Livewire\WithFileUploads;
+use Illuminate\Support\Carbon;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
+
 
 class ReleasingMoney extends Page
 {
@@ -19,6 +23,13 @@ class ReleasingMoney extends Page
     protected static ?string $navigationLabel = 'Releasing';
     protected static ?string $navigationGroup = 'Payables';
     protected static ?int $navigationSort = 5;
+
+  public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.money-icon')->render());
+    }
+
+
 
     public Collection $groups;
     public ?int $selectedDeceasedId = null;

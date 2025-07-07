@@ -48,7 +48,7 @@ class MemberResource extends Resource
 {
     protected static ?string $model = Member::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    //protected static ?string $navigationIcon = 'heroicon-o-user-group';
     //protected static ?string $activeNavigationIcon = 'heroicon-o-document-text';
 
 
@@ -59,13 +59,14 @@ class MemberResource extends Resource
     {
         return 'Members';
     }
+
     //protected static ?string $navigationIcon = 'heroicon-o-users';
 
 
-    // public static function getNavigationIcon(): string | Htmlable | null
-    // {
-    //     return new HtmlString(view('icons.fa-users')->render());
-    // }
+     public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.member-icon')->render());
+    }
 
 
     public static function form(Form $form): Form
@@ -360,7 +361,7 @@ class MemberResource extends Resource
             )
             ->columns([
                 TextColumn::make('boligid')
-                    ->label('#')
+                   ->label('Member ID')
                     ->sortable()
                     ->searchable(),
 
@@ -386,8 +387,8 @@ class MemberResource extends Resource
                             </div>
                             <div class='text-sm text-gray-600'>
                                 <i class='mr-1 fas fa-map-marker-alt'></i>
-                                <span class='inline-block bg-gray-100 text-gray-800 px-2 py-0.5 rounded'>
-                                  📍  {$formattedAddress}
+                                <span class='inline-block bg-gray-100 text-gray-800 px-2 py-0.5 rounded'>📍
+                                    {$formattedAddress}
                                 </span>
                             </div>
                             <div class='text-sm text-gray-600 truncate'> 📞

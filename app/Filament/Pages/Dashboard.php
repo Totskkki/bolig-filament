@@ -5,30 +5,18 @@ namespace App\Filament\Pages;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Forms\Components\Select;
 use App\Models\Member;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\HtmlString;
 
 class Dashboard extends BaseDashboard
 {
-    public function filterForm(): array
-    {
-        return [
-            Select::make('coordinator_id')
-                ->label('Coordinator')
-                ->searchable()
-                ->options(
-                    Member::with('name')
-                        ->where('role', 'coordinator')
-                        ->get()
-                        ->pluck('full_name', 'memberID')
-                )
-                ->placeholder('All Coordinators'),
-        ];
-    }
+    // protected static ?string $navigationIcon = 'heroicon-o-home'; // or 'home', 'peso', 'dashboard', etc.
+    protected static ?string $navigationLabel = 'Dashboard';
 
-    // protected function getHeaderWidgets(): array
-    // {
-    //     return [
-    //         \App\Filament\Widgets\AdvancedStatsOverviewWidget::class,
-    //         \App\Filament\Widgets\MonthlyContributionsChart::class,
-    //     ];
-    // }
+
+    public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.nav-dashboard')->render());
+    }
 }

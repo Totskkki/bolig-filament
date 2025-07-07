@@ -12,13 +12,21 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
+use Illuminate\Contracts\Support\Htmlable;
 
 class UsersResource extends Resource
 {
     protected static ?string $model = Users::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+   // protected static ?string $navigationIcon = 'fas-user-friends';
     protected static ?string $navigationGroup = 'User';
+
+    public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.users')->render());
+    }
+
 
     public static function form(Form $form): Form
     {

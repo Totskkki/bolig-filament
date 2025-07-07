@@ -41,21 +41,22 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->sidebarCollapsibleOnDesktop()
+            ->sidebarCollapsibleOnDesktop()  //this one
             ->colors([
-                'primary' => Color::Slate,
+                'primary' => Color::Amber,
             ])
             ->font('Poppins')
             ->databaseNotifications()
             ->favicon('images/favicon.png')
+            //->viteTheme('resources/css/app.css')
             ->spa()
             // ->maxwidth('14rem')
 
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                //  \App\Filament\Pages\Dashboard::class,
-                Pages\Dashboard::class,
+                \App\Filament\Pages\Dashboard::class,
+                //  Pages\Dashboard::class,
                 //ContributionReport::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')

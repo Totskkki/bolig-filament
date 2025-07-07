@@ -28,6 +28,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
+
 class CoordinatorContributions extends Page implements HasTable, HasForms
 {
     use InteractsWithTable;
@@ -39,12 +42,18 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
     protected static ?string $navigationGroup = 'Payables';
     protected static ?int $navigationSort = 2;
 
+
+
+    public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.coordinators-icon')->render());
+    }
+
+
     #[Url(as: 'coordinator', keep: true)]
     public ?string $coordinator = null;
     public ?string $filterMonth = null;
     public bool $showPaid = false;
-
-
 
 
 
@@ -68,58 +77,29 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
                             $set('coordinator', $state);
                         }),
 
-                    Forms\Components\Select::make('filterMonth')
-                        ->label('Filter by Month')
-                        ->options([
-                            '01' => 'January',
-                            '02' => 'February',
-                            '03' => 'March',
-                            '04' => 'April',
-                            '05' => 'May',
-                            '06' => 'June',
-                            '07' => 'July',
-                            '08' => 'August',
-                            '09' => 'September',
-                            '10' => 'October',
-                            '11' => 'November',
-                            '12' => 'December',
-                        ])
-                        ->placeholder('All Months')
-                        ->live(debounce: 500)
-                        ->afterStateUpdated(fn($state) => $this->filterMonth = $state),
+                    // Forms\Components\Select::make('filterMonth')
+                    //     ->label('Filter by Month')
+                    //     ->options([
+                    //         '01' => 'January',
+                    //         '02' => 'February',
+                    //         '03' => 'March',
+                    //         '04' => 'April',
+                    //         '05' => 'May',
+                    //         '06' => 'June',
+                    //         '07' => 'July',
+                    //         '08' => 'August',
+                    //         '09' => 'September',
+                    //         '10' => 'October',
+                    //         '11' => 'November',
+                    //         '12' => 'December',
+                    //     ])
+                    //     ->placeholder('All Months')
+                    //     ->live(debounce: 500)
+                    //     ->afterStateUpdated(fn($state) => $this->filterMonth = $state),
                 ]),
         ];
     }
 
-
-
-
-    // protected function getTableQuery()
-    // {
-    //     if (!$this->coordinator) {
-    //         return Member::whereRaw('0 = 1');
-    //     }
-
-    //     return Member::where('coordinator_id', $this->coordinator)
-    //         ->withSum(['contributions as contributions_sum_amount' => function ($query) {
-    //             $query->where('status', 0);
-    //         }], 'amount');
-    // }
-
-    // protected function getTableQuery()
-    // {
-    //     if (!$this->coordinator) {
-    //         return Member::whereRaw('0 = 1');
-    //     }
-
-    //     return Member::where('coordinator_id', $this->coordinator)
-    //         ->whereHas('contributions', function ($query) {
-    //             $query->where('status', 0);
-    //         })
-    //         ->withSum(['contributions as contributions_sum_amount' => function ($query) {
-    //             $query->where('status', 0);
-    //         }], 'amount');
-    // }
 
     protected function getTableQuery()
     {
@@ -129,23 +109,18 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
 
         return Member::where('coordinator_id', $this->coordinator)
             ->whereHas('contributions', function ($query) {
-                // $query->where('status', $this->showPaid ? 1 : 0);
-
+                $query->where('status', 0); // only unpaid
                 if ($this->filterMonth) {
                     $query->where('month', $this->filterMonth);
                 }
             })
             ->withSum(['contributions as contributions_sum_amount' => function ($query) {
-                //$query->where('status', $this->showPaid ? 1 : 0);
-
+                $query->where('status', 0); // unpaid only
                 if ($this->filterMonth) {
                     $query->where('month', $this->filterMonth);
                 }
             }], 'amount');
     }
-
-
-
 
 
     public function getCoordinatorsProperty()
@@ -168,15 +143,6 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
         ];
     }
 
-    // protected function getHeaderActions(): array
-    // {
-    //     return [
-    //         Action::make('back')
-    //             ->label('Back to Dashboard')
-    //             ->url(route('filament.admin.pages.dashboard'))
-    //             ->color('gray'),
-    //     ];
-    // }
 
     public function updatedCoordinator()
     {

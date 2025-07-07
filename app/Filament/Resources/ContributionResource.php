@@ -28,14 +28,20 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 
-
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 class ContributionResource extends Resource
 {
     protected static ?string $model = Contribution::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+    //protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationGroup = 'Payables';
     //protected static ?int $navigationSort = 2;
+
+      public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.contribution-icon')->render());
+    }
 
     // public static function getTableQuery(): Builder
     // {

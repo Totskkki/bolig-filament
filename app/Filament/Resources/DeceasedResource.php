@@ -20,15 +20,23 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Carbon;
 
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 
 class DeceasedResource extends Resource
 {
     protected static ?string $model = Deceased::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-identification';
+    // protected static ?string $navigationIcon = 'fas-skull';
 
     // protected static ?string $navigationLabel = 'Deceased';
     protected static ?int $navigationSort = 3;
+
+    public static function getNavigationIcon(): string | Htmlable | null
+    {
+        return new HtmlString(view('components.icons.deceased-icon')->render());
+    }
+
 
     public static function getModelLabel(): string
     {
@@ -128,13 +136,13 @@ class DeceasedResource extends Resource
             ->modifyQueryUsing(
                 fn($query) =>
                 $query
-                    ->with(['member.name', 'member.address'])
-                // ->whereHas('member', function ($q) {
-                //     $q->where('role', 'member');
-                // })
+                    ->with(['member.name', 'member.address', 'contributions'])
+
+
             )
             ->columns([
-
+                TextColumn::make('member.boligid')
+                    ->label('Member ID'),
                 TextColumn::make('member.name')
                     ->label('Name')
                     ->sortable(['last_name', 'first_name', 'middle_name'])
@@ -154,9 +162,8 @@ class DeceasedResource extends Resource
                 TextColumn::make('cause_of_death')->label('Cause of Death')
                     ->html()
                     ->wrap(),
-                TextColumn::make('created_at')
-                    ->label('Created at')
-                    ->since(),
+
+
 
 
 

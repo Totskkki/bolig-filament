@@ -24,37 +24,49 @@ class Address extends Model
         'postal_code',
     ];
 
-    public function users()
+    // 🔁 Static cached data
+    protected static array $regionData = [];
+    protected static array $provinceData = [];
+    protected static array $cityData = [];
+    protected static array $barangayData = [];
+
+    // ✅ Load JSON once per request
+    protected static function booted()
     {
-        return $this->hasMany(User::class, 'address_id', 'addressid');
+        static::$regionData = json_decode(file_get_contents(storage_path('app/locations/region.json')), true);
+        static::$provinceData = json_decode(file_get_contents(storage_path('app/locations/province.json')), true);
+        static::$cityData = json_decode(file_get_contents(storage_path('app/locations/city.json')), true);
+        static::$barangayData = json_decode(file_get_contents(storage_path('app/locations/barangay.json')), true);
     }
 
+    // ✅ Use cached array
     public function getProvinceNameAttribute(): string
     {
-        $provinces = collect(json_decode(file_get_contents(storage_path('app/locations/province.json')), true));
-        return $provinces->firstWhere('province_code', $this->province)['province_name'] ?? 'Unknown Province';
+        return collect(static::$provinceData)->firstWhere('province_code', $this->province)['province_name'] ?? 'Unknown Province';
     }
 
     public function getCityNameAttribute(): string
     {
-        $cities = collect(json_decode(file_get_contents(storage_path('app/locations/city.json')), true));
-        return $cities->firstWhere('city_code', $this->city)['city_name'] ?? 'Unknown City';
+        return collect(static::$cityData)->firstWhere('city_code', $this->city)['city_name'] ?? 'Unknown City';
     }
 
     public function getBarangayNameAttribute(): string
     {
-        $barangays = collect(json_decode(file_get_contents(storage_path('app/locations/barangay.json')), true));
-        return $barangays->firstWhere('brgy_code', $this->barangay)['brgy_name'] ?? 'Unknown Barangay';
+        return collect(static::$barangayData)->firstWhere('brgy_code', $this->barangay)['brgy_name'] ?? 'Unknown Barangay';
     }
 
     public function getRegionNameAttribute(): string
     {
-        $regions = collect(json_decode(file_get_contents(storage_path('app/locations/region.json')), true));
-        return $regions->firstWhere('region_code', $this->region)['region_name'] ?? 'Unknown Region';
+        return collect(static::$regionData)->firstWhere('region_code', $this->region)['region_name'] ?? 'Unknown Region';
     }
 
     public function getFullAddressAttribute(): string
     {
         return "{$this->street}, {$this->barangay_name}, {$this->city_name}, {$this->province_name}, {$this->region_name}";
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'address_id', 'addressid');
     }
 }
