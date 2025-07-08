@@ -45,3 +45,33 @@ Route::get('/admin/contribution-report/pdf', function () {
 
     return $pdf->download('contribution-report.pdf');
 })->name('contribution.report.pdf');
+
+Route::get('/coordinator/print-receipt', function () {
+    $ids = explode(',', request()->get('members'));
+    $coordinatorId = request()->get('coordinator');
+    $receiptRef = request()->get('ref'); // ✅ GET from URL
+
+    $coordinator = Member::find($coordinatorId);
+
+    $payments = [];
+    foreach ($ids as $id) {
+        $member = Member::with('deceaseds')->find($id);
+
+        $contributions = Contribution::where('payer_memberID', $id)
+            ->where('status', 1)
+            ->whereDate('payment_date', today())
+            ->get();
+
+        $payments[] = [
+            'member' => $member,
+            'total' => $contributions->sum('amount'),
+            'deceased' => $member->deceaseds ?? [],
+        ];
+    }
+
+    return view('receipts.payment-receipt', [
+        'payments' => $payments,
+        'coordinator' => $coordinator,
+        'receiptRef' => $receiptRef, // ✅ PASS HERE
+    ]);
+})->name('coordinator.print-receipt');

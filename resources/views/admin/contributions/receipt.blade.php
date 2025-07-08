@@ -4,7 +4,7 @@
     <title>BOLIG Contribution Receipt</title>
     <style>
         @font-face {
-            font-family: 'DejaVu Sans';
+          font-family: "Courier New", monospace;
             src: url('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.36/fonts/DejaVuSans.ttf') format('truetype');
         }
 

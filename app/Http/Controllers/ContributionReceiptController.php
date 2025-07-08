@@ -39,38 +39,7 @@ class ContributionReceiptController extends Controller
         return view('admin.contributions.receipt', compact('payer', 'contributions', 'totalPaid'));
     }
 
-    // public function bulkReceipt(Request $request)
-    // {
-    //     $payerIds = explode(',', $request->input('payer_ids', ''));
-    //     $batchId = $request->input('batch');
 
-    //     $receipts = [];
-
-    //     foreach ($payerIds as $payerId) {
-    //         $payer = Member::with('name')->find($payerId);
-
-    //         if (!$payer) continue;
-
-    //         $contributions = Contribution::with(['deceased.member.name'])
-    //             ->where('payer_memberID', $payerId)
-    //             ->where('status', 1)
-    //             ->where('payment_batch', $batchId)
-    //             ->orderBy('payment_date', 'desc')
-    //             ->get();
-
-    //         if ($contributions->isEmpty()) continue;
-
-    //         $totalPaid = $contributions->sum('amount');
-
-    //         $receipts[] = [
-    //             'payer' => $payer,
-    //             'contributions' => $contributions,
-    //             'total' => $totalPaid,
-    //         ];
-    //     }
-
-    //     return view('admin.contributions.print-bulk', compact('receipts'));
-    // }
     public function bulkReceipt(Request $request)
     {
         $payerIds = explode(',', $request->input('payer_ids', ''));
@@ -85,7 +54,7 @@ class ContributionReceiptController extends Controller
                 ->where('payer_memberID', $payerId)
                 ->where('status', 1);
 
-            // ✅ Only include newly paid contributions from this batch
+
             if ($batchId) {
                 $query->where('payment_batch', $batchId);
             }

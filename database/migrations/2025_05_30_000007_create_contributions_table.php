@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('month')->nullable();
             $table->string('year')->nullable();
             $table->tinyInteger('status')->default(0)->comment('0=unpaid, 1=paid');
-            $table->tinyInteger('release_status')->default(0)->comment('0=pending, 1=released');
+            $table->tinyInteger('release_status')->default(0)->comment('0=pending, 1=released', '2=partial');
             $table->unsignedBigInteger('released_by')->nullable();
             $table->foreign('released_by')->references('userid')->on('users')->nullOnDelete();
             $table->timestamp('released_at')->nullable();

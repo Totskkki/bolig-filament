@@ -4,7 +4,7 @@
     <title>Bulk Receipts</title>
     <style>
         @font-face {
-            font-family: 'DejaVu Sans';
+            font-family: "Courier New", monospace;
             src: url('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.36/fonts/DejaVuSans.ttf') format('truetype');
         }
           body {
@@ -76,6 +76,15 @@
             word-break: break-all;
         }
 
+       .logo {
+            text-align: center;
+        }
+
+        .logo img {
+            height: 50px;
+            margin-bottom: 0.5rem;
+        }
+
         @media print {
             .no-print {
                 display: none !important;
@@ -102,7 +111,8 @@
     @foreach ($receipts as $receipt)
         <div class="receipt">
             <div class="logo">
-                <img src="{{ public_path('images/android-chrome-192x192.png') }}" alt="BOLIG Logo">
+                {{-- <img src="{{ public_path('images/android-chrome-192x192.png') }}" alt="BOLIG Logo"> --}}
+                    <img src="{{ asset('images/astiglogo.png') }}" alt="BOLIG Logo" onerror="this.style.display='none'">
             </div>
             <div class="title">Bread of Life in God (BOLIG)</div>
             <div style="text-align: center; font-size: 12px;">Contribution Receipt</div>

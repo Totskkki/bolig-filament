@@ -46,6 +46,11 @@ class Member extends Model
     // {
     //     return $this->hasMany(Contribution::class, 'payer_memberID');
     // }
+    public function deceaseds()
+    {
+        return $this->hasMany(Deceased::class, 'member_id', 'memberID'); // adjust FK as needed
+    }
+
 
     public function isDeceased()
     {

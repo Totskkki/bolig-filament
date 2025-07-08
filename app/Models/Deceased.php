@@ -24,14 +24,15 @@ class Deceased extends Model
 
 
     public function contributions()
-{
-    return $this->hasMany(Contribution::class, 'deceased_id', 'deceasedID');
-}
+    {
+        return $this->hasMany(Contribution::class, 'deceased_id', 'deceasedID');
+    }
 
     public function getFullNameAttribute()
     {
         return $this->member?->full_name ?? 'N/A';
     }
+
 
 
     protected static function booted()

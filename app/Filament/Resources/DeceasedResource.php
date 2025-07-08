@@ -162,6 +162,20 @@ class DeceasedResource extends Resource
                 TextColumn::make('cause_of_death')->label('Cause of Death')
                     ->html()
                     ->wrap(),
+                TextColumn::make('contributions.0.release_status')
+                    ->label('Payment Status')
+                    ->badge()
+                    ->colors([
+                        'warning' => static fn($state): bool => $state === 0,
+                        'success' => static fn($state): bool => $state === 1,
+                        'danger' => static fn($state): bool => $state === 2,
+                    ])
+                    ->formatStateUsing(fn($state): string => match ($state) {
+                        0 => 'Pending',
+                        1 => 'Paid',
+                        2 => 'Partial Payment',
+                        default => 'Unknown',
+                    }),
 
 
 

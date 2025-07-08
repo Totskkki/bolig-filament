@@ -63,7 +63,7 @@ class MemberResource extends Resource
     //protected static ?string $navigationIcon = 'heroicon-o-users';
 
 
-     public static function getNavigationIcon(): string | Htmlable | null
+    public static function getNavigationIcon(): string | Htmlable | null
     {
         return new HtmlString(view('components.icons.member-icon')->render());
     }
@@ -352,7 +352,7 @@ class MemberResource extends Resource
 
 
             ->defaultSort('memberID', 'desc')
-            ->paginated(10)
+            ->paginated(10, 25, 50)
             ->modifyQueryUsing(
                 fn($query) =>
                 $query->with(['name', 'address', 'coordinator.name'])
@@ -361,7 +361,7 @@ class MemberResource extends Resource
             )
             ->columns([
                 TextColumn::make('boligid')
-                   ->label('Member ID')
+                    ->label('Member ID')
                     ->sortable()
                     ->searchable(),
 

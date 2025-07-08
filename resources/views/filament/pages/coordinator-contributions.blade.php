@@ -18,3 +18,10 @@
         </div>
     @endif
 </x-filament::page>
+
+<script>
+    window.addEventListener('open-receipt-tab', event => {
+        window.open(event.detail.url, '_blank');
+    });
+</script>
+

@@ -66,6 +66,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\AdvancedStatsOverviewWidget::class,
                 \App\Filament\Widgets\MonthlyContributionsChart::class,
 
+
             ])
             ->middleware([
                 EncryptCookies::class,

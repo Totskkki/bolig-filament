@@ -1,4 +1,9 @@
-run 
+run
 rmdir public\storage
 then restart
 php artisan storage:link
+
+git reset --hard
+git clean -fd
+git pull
+
