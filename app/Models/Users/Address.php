@@ -1,12 +1,11 @@
 <?php
-
 namespace App\Models\Users;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class Address extends Model
 {
@@ -24,40 +23,42 @@ class Address extends Model
         'postal_code',
     ];
 
-    // 🔁 Static cached data
-    protected static array $regionData = [];
-    protected static array $provinceData = [];
-    protected static array $cityData = [];
-    protected static array $barangayData = [];
+    // ✅ Use DB to get names instead of loading JSON
 
-    // ✅ Load JSON once per request
-    protected static function booted()
+    public function getRegionNameAttribute(): string
     {
-        static::$regionData = json_decode(file_get_contents(storage_path('app/locations/region.json')), true);
-        static::$provinceData = json_decode(file_get_contents(storage_path('app/locations/province.json')), true);
-        static::$cityData = json_decode(file_get_contents(storage_path('app/locations/city.json')), true);
-        static::$barangayData = json_decode(file_get_contents(storage_path('app/locations/barangay.json')), true);
+        return Cache::rememberForever("region_{$this->region}", function () {
+            return DB::table('regions')
+                ->where('region_code', $this->region)
+                ->value('region_name') ?? 'Unknown Region';
+        });
     }
 
-    // ✅ Use cached array
     public function getProvinceNameAttribute(): string
     {
-        return collect(static::$provinceData)->firstWhere('province_code', $this->province)['province_name'] ?? 'Unknown Province';
+        return Cache::rememberForever("province_{$this->province}", function () {
+            return DB::table('provinces')
+                ->where('province_code', $this->province)
+                ->value('province_name') ?? 'Unknown Province';
+        });
     }
 
     public function getCityNameAttribute(): string
     {
-        return collect(static::$cityData)->firstWhere('city_code', $this->city)['city_name'] ?? 'Unknown City';
+        return Cache::rememberForever("city_{$this->city}", function () {
+            return DB::table('cities')
+                ->where('city_code', $this->city)
+                ->value('city_name') ?? 'Unknown City';
+        });
     }
 
     public function getBarangayNameAttribute(): string
     {
-        return collect(static::$barangayData)->firstWhere('brgy_code', $this->barangay)['brgy_name'] ?? 'Unknown Barangay';
-    }
-
-    public function getRegionNameAttribute(): string
-    {
-        return collect(static::$regionData)->firstWhere('region_code', $this->region)['region_name'] ?? 'Unknown Region';
+        return Cache::rememberForever("barangay_{$this->barangay}", function () {
+            return DB::table('barangays')
+                ->where('brgy_code', $this->barangay)
+                ->value('brgy_name') ?? 'Unknown Barangay';
+        });
     }
 
     public function getFullAddressAttribute(): string

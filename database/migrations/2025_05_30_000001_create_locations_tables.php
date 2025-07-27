@@ -13,32 +13,33 @@ return new class extends Migration
     {
         // regions table
         Schema::create('regions', function (Blueprint $table) {
-            $table->string('region_code')->primary(); // ex. '01'
+            $table->id();
+            $table->string('region_code')->unique();
             $table->string('region_name');
         });
 
         // provinces table
         Schema::create('provinces', function (Blueprint $table) {
-            $table->string('province_code')->primary(); // ex. '0128'
+            $table->id();
+            $table->string('province_code')->unique();
             $table->string('province_name');
-            $table->string('region_code'); // foreign key
-            $table->foreign('region_code')->references('region_code')->on('regions');
+            $table->foreignId('region_id')->constrained()->onDelete('cascade');
         });
 
         // cities table
         Schema::create('cities', function (Blueprint $table) {
-            $table->string('city_code')->primary();
+            $table->id();
+            $table->string('city_code')->unique();
             $table->string('city_name');
-            $table->string('province_code');
-            $table->foreign('province_code')->references('province_code')->on('provinces');
+            $table->foreignId('province_id')->constrained()->onDelete('cascade');
         });
 
         // barangays table
         Schema::create('barangays', function (Blueprint $table) {
-            $table->string('brgy_code')->primary();
+            $table->id();
+            $table->string('brgy_code')->unique();
             $table->string('brgy_name');
-            $table->string('city_code');
-            $table->foreign('city_code')->references('city_code')->on('cities');
+            $table->foreignId('city_id')->constrained()->onDelete('cascade');
         });
     }
     public function down(): void

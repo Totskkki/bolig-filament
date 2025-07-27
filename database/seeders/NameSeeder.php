@@ -10,18 +10,18 @@ class NameSeeder extends Seeder
     public function run(): void
     {
         Name::create([
-            'first_name' => 'Juan',
-            'middle_name' => 'D.',
-            'last_name' => 'Cruz',
+            'first_name' => 'Admin',
+            'middle_name' => '',
+            'last_name' => 'Admin',
             'gender' => 'male',
             'age' => '30',
             'birthday' => '2002-01-06',
         ]);
 
         Name::create([
-            'first_name' => 'Maria',
-            'middle_name' => 'S.',
-            'last_name' => 'Lopez',
+            'first_name' => 'Staff',
+            'middle_name' => '',
+            'last_name' => 'Staff',
              'gender' => 'female',
              'age' => '25',
             'birthday' => '2001-02-25',

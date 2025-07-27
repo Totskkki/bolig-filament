@@ -1,0 +1,21 @@
+.monaco-workbench,
+.sidebar,
+.activitybar,
+.titlebar,
+.tabs,
+.panel,
+.statusbar,
+.settings-body,
+.extension-editor,
+.monaco-menu,
+.monaco-editor,
+.terminal,
+.debug-pane,
+.monaco-inputbox,
+.chat-view {
+  font-family: "Dank Mono";
+}
+.monaco-editor .mtk1 {
+  font-family: "Dank Mono";
+  font-feature-settings: "liga" 1, "calt" 1;
+}

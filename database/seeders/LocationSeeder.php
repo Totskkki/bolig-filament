@@ -1,5 +1,4 @@
 <?php
-
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -10,78 +9,83 @@ class LocationSeeder extends Seeder
 {
     public function run(): void
     {
-        // Disable foreign key checks to avoid constraint issues during truncate
         Schema::disableForeignKeyConstraints();
-
         DB::table('barangays')->truncate();
         DB::table('cities')->truncate();
         DB::table('provinces')->truncate();
         DB::table('regions')->truncate();
-
         Schema::enableForeignKeyConstraints();
 
-        // Load JSON files
-        $regionPath = storage_path('app/locations/region.json');
-        $provincePath = storage_path('app/locations/province.json');
-        $cityPath = storage_path('app/locations/city.json');
-        $barangayPath = storage_path('app/locations/barangay.json');
+        $regions   = collect(json_decode(file_get_contents(storage_path('app/locations/region.json')), true));
+        $provinces = collect(json_decode(file_get_contents(storage_path('app/locations/province.json')), true))->unique('province_code');
+        $cities    = collect(json_decode(file_get_contents(storage_path('app/locations/city.json')), true));
+        $barangays = collect(json_decode(file_get_contents(storage_path('app/locations/barangay.json')), true));
 
-        $regions = collect(json_decode(file_get_contents($regionPath), true));
-        $provinces = collect(json_decode(file_get_contents($provincePath), true))
-            ->unique('province_code');
-        $cities = collect(json_decode(file_get_contents($cityPath), true));
-        $barangays = collect(json_decode(file_get_contents($barangayPath), true));
+        // --- Seed Regions in batch
+        $regionData = $regions->map(fn($r) => [
+            'region_code' => $r['region_code'],
+            'region_name' => $r['region_name'],
+        ])->toArray();
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        foreach (array_chunk($regionData, 500) as $chunk) {
+            DB::table('regions')->insert($chunk);
+        }
 
-        // Truncate all
-        DB::table('barangays')->truncate();
-        DB::table('cities')->truncate();
-        DB::table('provinces')->truncate();
-        DB::table('regions')->truncate();
+        $regionMap = DB::table('regions')->pluck('id', 'region_code');
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-
-        // Seed Regions
-        DB::table('regions')->insert(
-            $regions->map(fn($r) => [
-                'region_code' => $r['region_code'],
-                'region_name' => $r['region_name'],
-            ])->toArray()
-        );
-
-        // Seed Provinces
-
-
-        collect($provinces)->chunk(500)->each(function ($chunk) {
-            DB::table('provinces')->upsert(
-                $chunk->map(fn($p) => [
+        // --- Seed Provinces in batch
+        $provinceData = $provinces->map(function ($p) use ($regionMap) {
+            $regionId = $regionMap[$p['region_code']] ?? null;
+            if ($regionId) {
+                return [
                     'province_code' => $p['province_code'],
                     'province_name' => $p['province_name'],
-                    'region_code' => $p['region_code'],
-                ])->toArray(),
-                ['province_code'], // unique key
-                ['province_name', 'region_code'] // fields to update
-            );
-        });
+                    'region_id'     => $regionId,
+                ];
+            }
+            return null;
+        })->filter()->values()->toArray();
 
-        // Seed Cities
-        DB::table('cities')->insert(
-            $cities->map(fn($c) => [
-                'city_code' => $c['city_code'],
-                'city_name' => $c['city_name'],
-                'province_code' => $c['province_code'],
-            ])->toArray()
-        );
+        foreach (array_chunk($provinceData, 500) as $chunk) {
+            DB::table('provinces')->insert($chunk);
+        }
 
-        // Seed Barangays
-        DB::table('barangays')->insert(
-            $barangays->map(fn($b) => [
-                'brgy_code' => $b['brgy_code'],
-                'brgy_name' => $b['brgy_name'],
-                'city_code' => $b['city_code'],
-            ])->toArray()
-        );
+        $provinceMap = DB::table('provinces')->pluck('id', 'province_code');
+
+        // --- Seed Cities in batch
+        $cityData = $cities->map(function ($c) use ($provinceMap) {
+            $provinceId = $provinceMap[$c['province_code']] ?? null;
+            if ($provinceId) {
+                return [
+                    'city_code'    => $c['city_code'],
+                    'city_name'    => $c['city_name'],
+                    'province_id'  => $provinceId,
+                ];
+            }
+            return null;
+        })->filter()->values()->toArray();
+
+        foreach (array_chunk($cityData, 500) as $chunk) {
+            DB::table('cities')->insert($chunk);
+        }
+
+        $cityMap = DB::table('cities')->pluck('id', 'city_code');
+
+        // --- Seed Barangays in batch
+        $barangayData = $barangays->map(function ($b) use ($cityMap) {
+            $cityId = $cityMap[$b['city_code']] ?? null;
+            if ($cityId) {
+                return [
+                    'brgy_code' => $b['brgy_code'],
+                    'brgy_name' => $b['brgy_name'],
+                    'city_id'   => $cityId,
+                ];
+            }
+            return null;
+        })->filter()->values()->toArray();
+
+        foreach (array_chunk($barangayData, 1000) as $chunk) {
+            DB::table('barangays')->insert($chunk);
+        }
     }
 }
