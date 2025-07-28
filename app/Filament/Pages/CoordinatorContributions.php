@@ -8,7 +8,6 @@ use App\Models\Member;
 use App\Models\SystemSetting;
 use App\Models\User;
 
-
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -50,11 +49,13 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
         return new HtmlString(view('components.icons.coordinators-icon')->render());
     }
 
-
     #[Url(as: 'coordinator', keep: true)]
     public ?string $coordinator = null;
     public ?string $filterMonth = null;
     public bool $showPaid = false;
+    public $releasedEarnings;
+
+
 
     protected function getFormSchema(): array
     {
@@ -76,29 +77,6 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
                 }),
         ];
     }
-
-
-
-    // protected function getTableQuery()
-    // {
-    //     if (!$this->coordinator) {
-    //         return Member::whereRaw('0 = 1');
-    //     }
-
-    //     return Member::where('coordinator_id', $this->coordinator)
-    //         ->whereHas('contributions', function ($query) {
-    //             $query->where('status', 0); // only unpaid
-    //             if ($this->filterMonth) {
-    //                 $query->where('month', $this->filterMonth);
-    //             }
-    //         })
-    //         ->withSum(['contributions as contributions_sum_amount' => function ($query) {
-    //             $query->where('status', 0); // unpaid only
-    //             if ($this->filterMonth) {
-    //                 $query->where('month', $this->filterMonth);
-    //             }
-    //         }], 'amount');
-    // }
 
     protected function getTableQuery()
     {
@@ -160,9 +138,12 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
     public function updatedCoordinator()
     {
         $this->resetTable();
+         $this->loadReleasedEarnings();
     }
-
-
+    public function mount()
+{
+    $this->loadReleasedEarnings();
+}
 
     protected function getTableBulkActions(): array
     {
@@ -203,106 +184,10 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
                         ->send();
                 })
                 ->action(fn($record) => $this->processPayment($record)),
-            // TableAction::make('pay')
-            //     ->label('Pay')
-            //     ->color('success')
-            //     ->icon('heroicon-s-currency-dollar')
-            //     ->requiresConfirmation()
-            //     ->visible(fn($record) => $record->contributions_sum_amount > 0)
-            //     ->action(function ($record) {
-            //         $this->processPayment($record);
-            //     }),
-            // Action::make('printReceipt')
-            //     ->label('Print Receipt')
-            //     ->icon('heroicon-o-printer')
-            //     ->url(fn($record) => route('coordinator.print-receipt', ['members' => $record->memberID]))
-            //     ->openUrlInNewTab(),
+
         ];
     }
 
-    // public function processPayment($member)
-    // {
-    //     DB::transaction(function () use ($member) {
-    //         $sharePercentage = SystemSetting::where('key', 'coordinator_share_percentage')->value('value') ?? 12;
-    //         $unpaidContributions = Contribution::where('payer_memberID', $member->memberID)
-    //             ->where('status', 0)
-    //             ->get();
-
-    //         if ($unpaidContributions->isEmpty()) {
-    //             return;
-    //         }
-
-    //         $total = $unpaidContributions->sum('amount');
-
-    //         foreach ($unpaidContributions as $contribution) {
-    //             $contribution->update([
-    //                 'status' => 1,
-    //                 'payment_date' => now(),
-    //                 'coordinator_id' => $this->coordinator,
-    //             ]);
-    //         }
-
-    //         CoordinatorEarning::create([
-    //             'contribution_id' => $unpaidContributions->first()->consid,
-    //             'coordinator_id' => $this->coordinator,
-    //             'share_amount' => $total * ((float)$sharePercentage / 100),
-    //         ]);
-    //         User::logAudit(
-    //             'Payment',
-    //             "Processed payment of ₱{$contribution->amount} for member {$member->full_name} via coordinator ID {$this->coordinator}"
-    //         );
-    //     });
-
-    //     Notification::make()
-    //         ->title('Payment Complete')
-    //         ->success()
-    //         ->send();
-
-
-    //     // $this->resetTable();
-    //     return redirect()->route('coordinator.print-receipt', ['members' => $member->memberID]);
-    // }
-
-    // public function processPayment($member)
-    // {
-    //     DB::transaction(function () use ($member) {
-    //         $sharePercentage = SystemSetting::where('key', 'coordinator_share_percentage')->value('value') ?? 12;
-    //         $unpaidContributions = Contribution::where('payer_memberID', $member->memberID)
-    //             ->where('status', 0)
-    //             ->get();
-
-    //         if ($unpaidContributions->isEmpty()) {
-    //             return;
-    //         }
-
-    //         $total = $unpaidContributions->sum('amount');
-
-    //         foreach ($unpaidContributions as $contribution) {
-    //             $contribution->update([
-    //                 'status' => 1,
-    //                 'payment_date' => now(),
-    //                 'coordinator_id' => $this->coordinator,
-    //             ]);
-    //         }
-
-    //         CoordinatorEarning::create([
-    //             'contribution_id' => $unpaidContributions->first()->consid,
-    //             'coordinator_id' => $this->coordinator,
-    //             'share_amount' => $total * ((float)$sharePercentage / 100),
-    //         ]);
-
-    //         User::logAudit(
-    //             'Payment',
-    //             "Processed payment of ₱{$total} for member {$member->full_name} via coordinator ID {$this->coordinator}"
-    //         );
-    //     });
-
-    //     // Skip notification if you want direct redirect
-    //     return redirect()->route('coordinator.print-receipt', [
-    //         'members' => $member->memberID,
-    //         'coordinator' => $this->coordinator,
-    //     ]);
-    // }
 
     public function processPayment($member)
     {
@@ -391,57 +276,37 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
         return redirect()->route('coordinator.print-receipt', [
             'members' => $ids,
             'coordinator' => $this->coordinator,
-            'ref' => $receiptRef, // ✅ pass this too
+            'ref' => $receiptRef,
         ]);
     }
 
+public function loadReleasedEarnings()
+{
+    if (!$this->coordinator) {
+        $this->releasedEarnings = collect();
+        return;
+    }
 
-    // public function processBulkPayments(Collection $members)
-    // {
-    //     DB::transaction(function () use ($members) {
-    //         $sharePercentage = SystemSetting::where('key', 'coordinator_share_percentage')->value('value') ?? 12;
-    //         foreach ($members as $member) {
-    //             $unpaidContributions = Contribution::where('payer_memberID', $member->memberID)
-    //                 ->where('status', 0)
-    //                 ->get();
+    $this->releasedEarnings = CoordinatorEarning::with('contribution.deceased')
+        ->where('coordinator_id', $this->coordinator)
+        ->whereHas('contribution', fn($q) => $q->where('release_status', 1)) // ✅ only released
+        ->get()
+        ->groupBy(fn($earning) => optional($earning->contribution->deceased)?->deceasedID)
+        ->map(function ($group) {
+            $first = $group->first();
 
-    //             if ($unpaidContributions->isEmpty()) {
-    //                 continue;
-    //             }
+            return [
+                'deceased_name' => optional($first->contribution->deceased)?->full_name ?? 'N/A',
+                'total_released' => $group->sum(fn($e) => $e->contribution->amount ?? 0),
+                'total_share' => $group->sum('share_amount'),
+                'release_date' => $first->contribution?->released_at
+    ? \Carbon\Carbon::parse($first->contribution->released_at)->format('Y-m-d')
+    : 'Not released',
+            ];
+        })->values();
+}
 
-    //             $total = $unpaidContributions->sum('amount');
 
-    //             foreach ($unpaidContributions as $contribution) {
-    //                 $contribution->update([
-    //                     'status' => 1,
-    //                     'payment_date' => now(),
-    //                     'coordinator_id' => $this->coordinator,
-    //                 ]);
-    //             }
 
-    //             CoordinatorEarning::create([
-    //                 'contribution_id' => $unpaidContributions->first()->consid,
-    //                 'coordinator_id' => $this->coordinator,
-    //                 'share_amount' => $total * ((float)$sharePercentage / 100),
-    //             ]);
 
-    //             User::logAudit(
-    //                 'Bulk Payment',
-    //                 "Processed payment of ₱{$total} for member {$member->full_name} via coordinator ID {$this->coordinator}"
-    //             );
-    //         }
-    //     });
-
-    //     Notification::make()
-    //         ->title('Bulk Payment Complete')
-    //         ->success()
-    //         ->send();
-
-    //     // $this->resetTable();
-    //     $ids = $members->pluck('memberID')->implode(',');
-    //     return redirect()->route('coordinator.print-receipt', [
-    //         'members' => $ids,
-    //         'coordinator' => $this->coordinator,
-    //     ]);
-    // }
 }

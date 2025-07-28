@@ -63,12 +63,19 @@ class Member extends Model
     }
 
 
-    public function getFullNameAttribute(): string
-    {
-        return $this->name
-            ? "{$this->name->first_name} {$this->name->middle_name} {$this->name->last_name}"
-            : 'N/A';
+   public function getFullNameAttribute(): string
+{
+    if (!$this->name) {
+        return 'N/A';
     }
+
+    $lastName = $this->name->last_name;
+    $firstName = $this->name->first_name;
+    $middleInitial = $this->name->middle_name ? strtoupper(substr($this->name->middle_name, 0, 1)) . '.' : '';
+
+    return "{$lastName}, {$firstName} {$middleInitial}";
+}
+
 
 
 

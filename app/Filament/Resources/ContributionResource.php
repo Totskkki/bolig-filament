@@ -30,6 +30,7 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HtmlString;
+
 class ContributionResource extends Resource
 {
     protected static ?string $model = Contribution::class;
@@ -38,7 +39,7 @@ class ContributionResource extends Resource
     protected static ?string $navigationGroup = 'Payables';
     //protected static ?int $navigationSort = 2;
 
-      public static function getNavigationIcon(): string | Htmlable | null
+    public static function getNavigationIcon(): string | Htmlable | null
     {
         return new HtmlString(view('components.icons.contribution-icon')->render());
     }
@@ -196,13 +197,31 @@ class ContributionResource extends Resource
                         $batchId = Str::uuid()->toString(); // unique for this payment
                         $now = now();
 
-                        \App\Models\Contribution::where('payer_memberID', $record->payer_memberID)
+                        $unpaidContributions = \App\Models\Contribution::where('payer_memberID', $record->payer_memberID)
                             ->where('status', 0)
-                            ->update([
+                            ->get();
+
+                        $total = $unpaidContributions->sum('amount');
+
+                        $coordinatorId = \App\Models\Member::find($record->payer_memberID)?->coordinator_id;
+                        $sharePercentage = \App\Models\SystemSetting::where('key', 'coordinator_share_percentage')->value('value') ?? 12;
+
+                        foreach ($unpaidContributions as $contribution) {
+                            $contribution->update([
                                 'status' => 1,
                                 'payment_date' => $now,
                                 'payment_batch' => $batchId,
+                                'coordinator_id' => $coordinatorId,
                             ]);
+                        }
+
+                        if ($coordinatorId && $total > 0) {
+                            \App\Models\CoordinatorEarning::create([
+                                'contribution_id' => $unpaidContributions->first()?->consid,
+                                'coordinator_id' => $coordinatorId,
+                                'share_amount' => $total * ((float) $sharePercentage / 100),
+                            ]);
+                        }
 
                         \Filament\Notifications\Notification::make()
                             ->title('Payment Successful')
@@ -210,20 +229,32 @@ class ContributionResource extends Resource
                             ->success()
                             ->send();
 
-                        // Redirect to receipt using payer + batch
                         return redirect()->route('contribution.receipt', [
                             'payer' => $record->payer_memberID,
                             'batch' => $batchId,
                         ]);
                     }),
+
                 Action::make('viewReceipt')
                     ->label('View Receipt')
                     ->icon('heroicon-o-document-text')
                     ->visible(fn($record) => (int) $record->latest_unpaid_status === 1)
-                    ->url(fn($record) => route('contribution.receipt', [
-                        'payer' => $record->payer_memberID,
-                        'batch' => $record->payment_batch,
-                    ]), true),
+                    ->url(function ($record) {
+                        $latestPaidContribution = \App\Models\Contribution::where('payer_memberID', $record->payer_memberID)
+                            ->where('status', 1)
+                            ->latest('payment_date')
+                            ->first();
+
+                        if (!$latestPaidContribution) {
+                            return '#'; // Fallback if no paid contributions found
+                        }
+
+                        return route('contribution.receipt', [
+                            'payer' => $record->payer_memberID,
+                            'batch' => $latestPaidContribution->payment_batch,
+                        ]);
+                    }, true),
+
 
 
 
@@ -231,24 +262,75 @@ class ContributionResource extends Resource
 
 
 
+            // ->bulkActions([
+            //     Tables\Actions\BulkAction::make('markAsPaid')
+            //         ->label('Mark as Paid')
+
+            //         ->action(function ($records, $livewire) {
+            //             $batchId = Str::uuid()->toString(); // or you can use now()->timestamp
+
+            //             foreach ($records as $record) {
+            //                 \App\Models\Contribution::where('payer_memberID', $record->payer_memberID)
+            //                     ->where('status', 0)
+            //                     ->update([
+            //                         'status' => 1,
+            //                         'payment_date' => now(),
+            //                         'payment_batch' => $batchId,
+            //                     ]);
+            //             }
+
+            //             $payerIds = $records->pluck('payer_memberID')->unique()->values();
+
+            //             return redirect()->route('contribution.receipt.bulk', [
+            //                 'payer_ids' => $payerIds->implode(','),
+            //                 'batch' => $batchId,
+            //             ]);
+            //         })
 
 
-
+            //         ->requiresConfirmation()
+            //         ->color('success')
+            //         ->icon('heroicon-o-currency-dollar'),
+            // ]);
             ->bulkActions([
                 Tables\Actions\BulkAction::make('markAsPaid')
                     ->label('Mark as Paid')
-
                     ->action(function ($records, $livewire) {
-                        $batchId = Str::uuid()->toString(); // or you can use now()->timestamp
+                        $batchId = Str::uuid()->toString();
+                        $now = now();
+
+                        $sharePercentage = \App\Models\SystemSetting::where('key', 'coordinator_share_percentage')->value('value') ?? 12;
 
                         foreach ($records as $record) {
-                            \App\Models\Contribution::where('payer_memberID', $record->payer_memberID)
+                            $payerId = $record->payer_memberID;
+
+                            $member = \App\Models\Member::find($payerId);
+                            $coordinatorId = $member?->coordinator_id;
+
+                            $unpaidContributions = \App\Models\Contribution::where('payer_memberID', $payerId)
                                 ->where('status', 0)
-                                ->update([
+                                ->get();
+
+                            if ($unpaidContributions->isEmpty()) continue;
+
+                            $total = $unpaidContributions->sum('amount');
+
+                            foreach ($unpaidContributions as $contribution) {
+                                $contribution->update([
                                     'status' => 1,
-                                    'payment_date' => now(),
+                                    'payment_date' => $now,
                                     'payment_batch' => $batchId,
+                                    'coordinator_id' => $coordinatorId,
                                 ]);
+                            }
+
+                            if ($coordinatorId && $total > 0) {
+                                \App\Models\CoordinatorEarning::create([
+                                    'contribution_id' => $unpaidContributions->first()->consid,
+                                    'coordinator_id' => $coordinatorId,
+                                    'share_amount' => $total * ((float)$sharePercentage / 100),
+                                ]);
+                            }
                         }
 
                         $payerIds = $records->pluck('payer_memberID')->unique()->values();
@@ -258,8 +340,6 @@ class ContributionResource extends Resource
                             'batch' => $batchId,
                         ]);
                     })
-
-
                     ->requiresConfirmation()
                     ->color('success')
                     ->icon('heroicon-o-currency-dollar'),

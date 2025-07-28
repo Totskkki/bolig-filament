@@ -12,6 +12,7 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Carbon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\Auth;
 
 
 class ReleasingMoney extends Page
@@ -78,9 +79,13 @@ class ReleasingMoney extends Page
             return;
         }
 
-        Contribution::where('deceased_id', $this->selectedDeceasedId)
-            ->where('status', '1')
-            ->update(['release_status' => '1']);
+                Contribution::where('deceased_id', $this->selectedDeceasedId)
+                    ->where('status', '1')
+                    ->update([
+                'release_status' => '1',
+                'released_by' => Auth::id(),
+                'released_at' => now(),
+            ]);
 
         $deceasedName = $deceased->member->full_name ?? 'Unknown';
 

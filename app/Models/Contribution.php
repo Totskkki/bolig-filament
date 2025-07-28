@@ -23,8 +23,11 @@ class Contribution extends Model
         'adjusted_amount',
         'status',
         'payment_date',
+        'payment_batch',
         'month',
         'year',
+        'released_by',
+        'released_at',
         'remarks',
         'coordinator_id',
     ];
@@ -82,16 +85,7 @@ class Contribution extends Model
     }
 
 
-    // public function unpaidContributions()
-    // {
-    //     return $this->hasMany(Contribution::class, 'payer_memberID')->where('status', '!=', 1);
-    // }
 
-    //     public function unpaidContributions()
-    // {
-    //     return $this->hasMany(Contribution::class, 'payer_memberID', 'memberID')
-    //         ->where('status', 0); // assuming 0 means unpaid
-    // }
     public function unpaidContributions()
     {
         return $this->hasMany(\App\Models\Contribution::class, 'payer_memberID', 'memberID')

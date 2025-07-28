@@ -17,4 +17,10 @@ class CoordinatorEarning extends Model
     {
         return $this->belongsTo(Contribution::class, 'contribution_id', 'consid');
     }
+
+
+public function deceased()
+{
+    return $this->contribution->deceased ?? null;
+}
 }
