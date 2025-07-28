@@ -45,4 +45,18 @@ class Deceased extends Model
             }
         });
     }
+    public function getTotalCollectedAmountAttribute(): float
+    {
+        return $this->contributions
+            ->where('status', '1')
+            ->where('release_status', '0')
+            ->sum('amount');
+    }
+    public function getTotalReleasedAmountAttribute(): float
+    {
+        return $this->contributions
+            ->where('status', '1')
+            ->where('release_status', '1')
+            ->sum('amount');
+    }
 }

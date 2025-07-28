@@ -21,7 +21,7 @@ class MemberSeeder extends Seeder
         // Create Coordinators
         $coordinatorData = [];
 
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 3; $i++) {
             $nameID = DB::table('names')->insertGetId([
                 'first_name' => $faker->firstName(),
                 'middle_name' => $faker->firstName(),
@@ -62,7 +62,7 @@ class MemberSeeder extends Seeder
         $memberChunks = [];
         $batchSize = 1000;
 
-        for ($i = 0; $i < 5000; $i++) {
+        for ($i = 0; $i < 20; $i++) {
             $nameID = DB::table('names')->insertGetId([
                 'first_name' => $faker->firstName(),
                 'middle_name' => $faker->firstName(),

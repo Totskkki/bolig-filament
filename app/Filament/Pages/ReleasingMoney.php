@@ -24,12 +24,10 @@ class ReleasingMoney extends Page
     protected static ?string $navigationGroup = 'Payables';
     protected static ?int $navigationSort = 5;
 
-  public static function getNavigationIcon(): string | Htmlable | null
+    public static function getNavigationIcon(): string | Htmlable | null
     {
         return new HtmlString(view('components.icons.money-icon')->render());
     }
-
-
 
     public Collection $groups;
     public ?int $selectedDeceasedId = null;
@@ -45,17 +43,13 @@ class ReleasingMoney extends Page
         $this->groups = Deceased::with([
             'member',
             'contributions' => fn($q) => $q->where('status', '1')
-        ])
-            ->withCount([
-                'contributions as total_collected' => fn($query) => $query->where('status', '1')
-            ])
-            ->get();
+        ])->get();
     }
+
 
     public function openConfirmModal(int $deceasedId): void
     {
         $this->selectedDeceasedId = $deceasedId;
-
         $this->dispatch('open-modal', id: 'confirm-release-modal');
     }
 
@@ -63,7 +57,26 @@ class ReleasingMoney extends Page
     {
         if (!$this->selectedDeceasedId) return;
 
-        $deceased = Deceased::with('member')->find($this->selectedDeceasedId);
+        // Find the deceased record from the already loaded groups collection
+        $deceased = $this->groups->firstWhere('deceasedID', $this->selectedDeceasedId);
+
+        if (!$deceased) {
+            Notification::make()
+                ->title("Deceased record not found.")
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Access total_collected directly from the already loaded model
+        if ($deceased->total_collected_amount <= 0) {
+
+            Notification::make()
+                ->title("Cannot release money. No funds available.")
+                ->warning()
+                ->send();
+            return;
+        }
 
         Contribution::where('deceased_id', $this->selectedDeceasedId)
             ->where('status', '1')
@@ -80,7 +93,7 @@ class ReleasingMoney extends Page
 
         $this->reset(['selectedDeceasedId', 'receiptFile']);
         $this->dispatch('close-modal', id: 'confirm-release-modal');
-        $this->loadGroups();
+        $this->loadGroups(); // Re-load groups to reflect the release status
     }
 
     public function uploadReceipt(): void
