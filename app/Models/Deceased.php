@@ -59,4 +59,6 @@ class Deceased extends Model
             ->where('release_status', '1')
             ->sum('amount');
     }
+
+
 }

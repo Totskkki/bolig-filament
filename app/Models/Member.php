@@ -172,7 +172,7 @@ class Member extends Model
             do {
                 // Generate random 8-digit number
                 $randomNumber = str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
-                $boligid = "{$region}-{$randomNumber}-{$suffix}";
+                $boligid = "{$region}{$randomNumber}{$suffix}";
 
                 // Check for uniqueness within the same region and role
                 $exists = Member::where('boligid', $boligid)->exists();

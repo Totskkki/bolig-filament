@@ -21,7 +21,7 @@ class MemberSeeder extends Seeder
         // Create Coordinators
         $coordinatorData = [];
 
-        for ($i = 0; $i < 3; $i++) {
+        for ($i = 0; $i < 2; $i++) {
             $nameID = DB::table('names')->insertGetId([
                 'first_name' => $faker->firstName(),
                 'middle_name' => $faker->firstName(),
@@ -122,7 +122,7 @@ class MemberSeeder extends Seeder
 
     do {
         $randomNumber = str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
-        $boligid = "{$regionCode}-{$randomNumber}-{$suffix}";
+        $boligid = "{$regionCode}{$randomNumber}{$suffix}";
     } while (
         in_array($boligid, $this->generatedBoligIds) ||
         DB::table('members')->where('boligid', $boligid)->exists()

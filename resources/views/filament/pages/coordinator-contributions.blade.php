@@ -29,7 +29,7 @@
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
                     <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Deceased</th>
-                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Total Collected</th>
+                    {{-- <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Total Collected</th> --}}
                     <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Coordinator Share</th>
                     <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Release Date</th>
                 </tr>
@@ -38,7 +38,7 @@
                 @forelse ($releasedEarnings as $earning)
                     <tr>
                         <td class="px-4 py-2 text-sm text-gray-800 dark:text-gray-100">{{ $earning['deceased_name'] }}</td>
-                        <td class="px-4 py-2 text-sm text-gray-800 dark:text-gray-100">₱{{ number_format($earning['total_released'], 2) }}</td>
+                        {{-- <td class="px-4 py-2 text-sm text-gray-800 dark:text-gray-100">₱{{ number_format($earning['total_released'], 2) }}</td> --}}
                         <td class="px-4 py-2 text-sm text-green-600 dark:text-green-400">₱{{ number_format($earning['total_share'], 2) }}</td>
                         <td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-300">{{ $earning['release_date'] ?? '—' }}</td>
                     </tr>

@@ -188,8 +188,9 @@ class ContributionResource extends Resource
 
             ->actions([
                 Tables\Actions\Action::make('payContribution')
-                    ->label('Pay Contribution')
-                    ->icon('heroicon-o-banknotes')
+                    ->label('Pay')
+                   // ->icon('heroicon-o-banknotes')
+                   ->button()
                     ->color('success')
                     ->requiresConfirmation()
                     ->visible(fn($record) => (int) ($record->latest_unpaid_status ?? 0) === 0)

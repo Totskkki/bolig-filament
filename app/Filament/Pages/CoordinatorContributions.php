@@ -138,12 +138,12 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
     public function updatedCoordinator()
     {
         $this->resetTable();
-         $this->loadReleasedEarnings();
+        $this->loadReleasedEarnings();
     }
     public function mount()
-{
-    $this->loadReleasedEarnings();
-}
+    {
+        $this->loadReleasedEarnings();
+    }
 
     protected function getTableBulkActions(): array
     {
@@ -211,11 +211,19 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
                 ]);
             }
 
-            CoordinatorEarning::create([
-                'contribution_id' => $unpaidContributions->first()->consid,
-                'coordinator_id' => $this->coordinator,
-                'share_amount' => $total * ((float)$sharePercentage / 100),
-            ]);
+            // CoordinatorEarning::create([
+            //     'contribution_id' => $unpaidContributions->first()->consid,
+            //     'coordinator_id' => $this->coordinator,
+            //     'share_amount' => $total * ((float)$sharePercentage / 100),
+            // ]);
+            foreach ($unpaidContributions as $contribution) {
+                CoordinatorEarning::create([
+                    'contribution_id' => $contribution->consid,
+                    'coordinator_id' => $this->coordinator,
+                    'share_amount' => $contribution->amount * ((float)$sharePercentage / 100),
+                ]);
+            }
+
 
             User::logAudit(
                 'Payment',
@@ -257,11 +265,19 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
                     ]);
                 }
 
-                CoordinatorEarning::create([
-                    'contribution_id' => $unpaidContributions->first()->consid,
-                    'coordinator_id' => $this->coordinator,
-                    'share_amount' => $total * ((float)$sharePercentage / 100),
-                ]);
+                // CoordinatorEarning::create([
+                //     'contribution_id' => $unpaidContributions->first()->consid,
+                //     'coordinator_id' => $this->coordinator,
+                //     'share_amount' => $total * ((float)$sharePercentage / 100),
+                // ]);
+                foreach ($unpaidContributions as $contribution) {
+                    CoordinatorEarning::create([
+                        'contribution_id' => $contribution->consid,
+                        'coordinator_id' => $this->coordinator,
+                        'share_amount' => $contribution->amount * ((float)$sharePercentage / 100),
+                    ]);
+                }
+
 
                 User::logAudit(
                     'Bulk Payment',
@@ -280,33 +296,58 @@ class CoordinatorContributions extends Page implements HasTable, HasForms
         ]);
     }
 
-public function loadReleasedEarnings()
-{
-    if (!$this->coordinator) {
-        $this->releasedEarnings = collect();
-        return;
+    public function loadReleasedEarnings()
+    {
+        if (!$this->coordinator) {
+            $this->releasedEarnings = collect();
+            return;
+        }
+
+        $this->releasedEarnings = CoordinatorEarning::with('contribution.deceased')
+            ->where('coordinator_id', $this->coordinator)
+            ->whereHas('contribution', function ($query) {
+                $query->where('release_status', 1)
+                    ->whereNotNull('deceased_id');
+            })
+            ->get()
+            ->groupBy(fn($earning) => $earning->contribution->deceased->deceasedID)
+            ->map(function ($group) {
+                $first = $group->first();
+                $deceased = $first->contribution->deceased;
+
+                return [
+                    'deceased_name' => $deceased->full_name ?? 'N/A',
+                    'total_released' => $group->sum(fn($e) => $e->contribution->amount ?? 0),
+                    'total_share' => $group->sum(fn($e) => $e->share_amount ?? 0),
+                    'release_date' => $first->contribution?->released_at
+                        ? \Carbon\Carbon::parse($first->contribution->released_at)->format('Y-m-d')
+                        : 'Not released',
+                ];
+            })->values();
     }
 
-    $this->releasedEarnings = CoordinatorEarning::with('contribution.deceased')
-        ->where('coordinator_id', $this->coordinator)
-        ->whereHas('contribution', fn($q) => $q->where('release_status', 1)) // ✅ only released
-        ->get()
-        ->groupBy(fn($earning) => optional($earning->contribution->deceased)?->deceasedID)
-        ->map(function ($group) {
-            $first = $group->first();
-
-            return [
-                'deceased_name' => optional($first->contribution->deceased)?->full_name ?? 'N/A',
-                'total_released' => $group->sum(fn($e) => $e->contribution->amount ?? 0),
-                'total_share' => $group->sum('share_amount'),
-                'release_date' => $first->contribution?->released_at
-    ? \Carbon\Carbon::parse($first->contribution->released_at)->format('Y-m-d')
-    : 'Not released',
-            ];
-        })->values();
-}
 
 
+    public function getTotalPaidCollectedProperty()
+    {
+        if (!$this->coordinator) {
+            return 0;
+        }
 
+        return Contribution::where('coordinator_id', $this->coordinator)
+            ->where('status', 1)
+            ->sum('amount');
+    }
+    public function getTotalReleasedCollectedProperty()
+    {
+        if (!$this->coordinator) {
+            return 0;
+        }
 
+        return Contribution::where('coordinator_id', $this->coordinator)
+            ->where('status', 1) // paid
+            ->where('release_status', 1) // released
+            ->whereHas('deceased') // only if tied to a deceased member
+            ->sum('amount');
+    }
 }
